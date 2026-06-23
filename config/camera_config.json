@@ -1,0 +1,14 @@
+{
+  "source_type": "ip_snapshot",
+  "ip_camera_url": "http://192.168.1.5:8080/video",
+  "ip_snapshot_url": "http://192.168.1.5:8080/shot.jpg",
+  "camera_index": 0,
+  "camera_backend": "MSMF",
+  "width": 640,
+  "height": 480,
+  "timeout_seconds": 30,
+  "audio_source": "ip",
+  "ip_audio_url": "http://192.168.1.5:8080/audio.wav",
+  "audio_duration_seconds": 4,
+  "fallback_to_local_microphone": false
+}

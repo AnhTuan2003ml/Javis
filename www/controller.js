@@ -105,24 +105,37 @@ $(document).ready(function () {
         }, 1000)
     }
 
+    function updateAIProviderUI(provider) {
+        const label = String(provider || 'Ollama').toUpperCase();
+        $("#currentAIProvider").text(label);
+        $("#currentAI").text(label);
+    }
+
     // AI Provider Controls
     $("#setGroqAI").click(function() {
         eel.setAIProvider("groq")(function(result) {
-            $("#currentAIProvider").text("GROQ");
+            updateAIProviderUI("Groq");
             alert(result);
         });
     });
     
     $("#setGeminiAI").click(function() {
         eel.setAIProvider("gemini")(function(result) {
-            $("#currentAIProvider").text("GEMINI");
+            updateAIProviderUI("Gemini");
+            alert(result);
+        });
+    });
+
+    $("#setOllamaAI").click(function() {
+        eel.setAIProvider("ollama")(function(result) {
+            updateAIProviderUI("Ollama");
             alert(result);
         });
     });
     
     // Load AI provider status on page load
     eel.getAIProvider()(function(provider) {
-        $("#currentAIProvider").text(provider.toUpperCase());
+        updateAIProviderUI(provider);
     });
     
     // Response Style Controls
@@ -337,7 +350,7 @@ $(document).ready(function () {
 eel.expose(readConfigFiles);
 function readConfigFiles() {
     return Promise.all([
-        eel.getAIProvider()().catch(() => 'GROQ'),
+        eel.getAIProvider()().catch(() => 'Ollama'),
         eel.getVoiceGender()().catch(() => 'Male'),
         eel.getCurrentLanguage()().catch(() => 'English')
     ]).then(([provider, gender, language]) => ({

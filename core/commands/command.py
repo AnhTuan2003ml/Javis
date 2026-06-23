@@ -10,7 +10,18 @@ import random
 import os
 import subprocess
 import schedule
+import re
 from core.commands.command_history import command_history
+from core.utils.vietnam_time import vn_now
+
+# Optional IP camera audio input
+try:
+    from core.voice.ip_audio import should_use_ip_audio, recognize_from_ip_audio
+except Exception as _ip_audio_import_error:
+    def should_use_ip_audio():
+        return False
+    def recognize_from_ip_audio(language="en-IN", duration=None):
+        return ""
 
 # Emotion Detection System
 class EmotionSystem:
@@ -116,7 +127,7 @@ class EmotionSystem:
                 'enabled': self.enabled,
                 'sensitivity': 0.7,
                 'last_emotion': self.current_emotion,
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': vn_now().isoformat(),
                 'emotion_history': self.emotion_history
             }
             with open(self.emotion_file, 'w') as f:
@@ -130,7 +141,7 @@ class EmotionSystem:
         self.current_emotion = emotion
         self.emotion_history.append({
             'emotion': emotion,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': vn_now().isoformat()
         })
         if len(self.emotion_history) > 10:
             self.emotion_history = self.emotion_history[-10:]
@@ -511,7 +522,7 @@ class TaskScheduler:
             task = {
                 'command': task_command,
                 'time': schedule_time,
-                'created': datetime.now().isoformat(),
+                'created': vn_now().isoformat(),
                 'executed': False
             }
             self.scheduled_tasks.append(task)
@@ -610,9 +621,42 @@ continuous_listener = None
 listening_paused = False
 jarvis_muted = False
 
+# Cooperative cancel/interrupt state shared by UI, voice loop, TTS and tools
+try:
+    from core.utils.interrupt import (
+        request_interrupt, clear_interrupt, is_interrupted,
+        should_cancel_command, set_current_task, get_state as get_interrupt_state_data
+    )
+except Exception:
+    def request_interrupt(reason="user_requested"):
+        return True
+    def clear_interrupt():
+        pass
+    def is_interrupted():
+        return False
+    def should_cancel_command(text):
+        return str(text or "").strip().lower() in ("cancel", "stop")
+    def set_current_task(task):
+        pass
+    def get_interrupt_state_data():
+        return {"interrupted": False, "current_task": "unknown"}
+
+def clean_ai_text(text):
+    text = str(text or "")
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"<think>.*$", "", text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"</?think>", "", text, flags=re.IGNORECASE)
+    return text.strip()
+
+
 def speak(text):
     global jarvis_muted
-    text = str(text)
+    text = clean_ai_text(text)
+    if not text:
+        return
+    if is_interrupted():
+        print(f"[INTERRUPTED] Skip speaking: {text}")
+        return
     
     # Check if Jarvis is muted
     if jarvis_muted:
@@ -697,6 +741,9 @@ def speak(text):
                 
                 # Wait for playback to complete
                 while pygame.mixer.music.get_busy():
+                    if is_interrupted():
+                        pygame.mixer.music.stop()
+                        break
                     pygame.time.wait(100)
                 
                 pygame.mixer.quit()
@@ -741,12 +788,56 @@ def speak(text):
 
 def takecommand():
     global listening_paused
+    if is_interrupted():
+        print("Listening cancelled before start")
+        return ""
     
     # Check if listening is paused
     if listening_paused:
         print("Listening is paused")
         return ""
     
+    # Use audio from IP camera when configured in config/camera_config.json
+    if should_use_ip_audio():
+        try:
+            print('listening from IP camera audio....')
+            try:
+                eel.DisplayMessage('listening from IP camera audio....')
+            except:
+                pass
+            try:
+                from core.voice.multilingual_support import multilingual
+                recognition_language = multilingual.get_speech_recognition_language()
+            except:
+                recognition_language = 'en-IN'
+            if is_interrupted():
+                return ""
+            query = recognize_from_ip_audio(language=recognition_language)
+            if is_interrupted():
+                return ""
+            if query and query.strip():
+                print(f"user said via IP audio: {query}")
+                try:
+                    eel.DisplayMessage(query)
+                except:
+                    pass
+                return query.lower()
+            return ""
+        except Exception as e:
+            print(f"IP audio recognition error: {e}")
+            try:
+                eel.DisplayMessage('IP audio error')
+            except:
+                pass
+            try:
+                import json as _json
+                _cfg = _json.load(open('config/camera_config.json', 'r', encoding='utf-8'))
+                if not _cfg.get('fallback_to_local_microphone', False):
+                    return ""
+            except Exception:
+                return ""
+            print('Fallback to local microphone...')
+
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print('listening....')
@@ -758,7 +849,11 @@ def takecommand():
         r.adjust_for_ambient_noise(source)
         
         try:
+            if is_interrupted():
+                return ""
             audio = r.listen(source, timeout=5, phrase_time_limit=3)
+            if is_interrupted():
+                return ""
         except sr.WaitTimeoutError:
             print("Listening timeout - no speech detected")
             return ""
@@ -802,6 +897,28 @@ def takecommand():
 def chatbot_listen():
     return takecommand()
 
+@eel.expose
+def interruptJarvis(reason="button"):
+    """Cancel current command, stop speech, and return UI to idle state."""
+    request_interrupt(reason)
+    try:
+        from core.voice.voice_gender_control import voice_control
+        voice_control.stop_speaking()
+    except Exception:
+        pass
+    try:
+        eel.DisplayMessage("Cancelled")
+        eel.receiverText("Cancelled current task.")
+        eel.ShowHood()
+    except Exception:
+        pass
+    print(f"[INTERRUPT] Jarvis interrupt requested: {reason}")
+    return "Cancelled current task"
+
+@eel.expose
+def getInterruptState():
+    return get_interrupt_state_data()
+
 def parse_multiple_commands(query):
     """Parse multiple commands from a single query"""
     import re
@@ -839,9 +956,27 @@ def parse_multiple_commands(query):
 @eel.expose
 def allCommands(message=1):
     is_voice_input = False
+
+    # Voice/text cancel commands must not start a new AI/tool execution.
+    if message != 1 and should_cancel_command(message):
+        return interruptJarvis("text_command")
+
+    # A new real command clears the previous cancel flag.
+    clear_interrupt()
+    set_current_task("listening" if message == 1 else "text_command")
+
     if message == 1:
         query = takecommand()
         print(query)
+        if not query or is_interrupted():
+            try:
+                eel.ShowHood()
+            except:
+                pass
+            set_current_task("idle")
+            return "Cancelled" if is_interrupted() else "No command heard"
+        if should_cancel_command(query):
+            return interruptJarvis("voice_command")
         eel.senderText(query)
         is_voice_input = True
     else:
@@ -852,10 +987,46 @@ def allCommands(message=1):
             print(f"User: {query}")
         is_voice_input = False
     
+    if is_interrupted():
+        set_current_task("idle")
+        return "Cancelled"
+    set_current_task(f"processing: {str(query)[:80]}")
+
     # Store the user command immediately
     if query and query.strip():
         command_history.add_command(query, "Processing...", is_voice_input)
     
+    # AI Tool Router -> Permission Guard -> MCP/local executor.
+    # Run before legacy open/search branches so "open Billie Jean in YouTube"
+    # becomes youtube_search(query), not generic open_website/open_app.
+    try:
+        from core.ai.tool_router import tool_router
+        from core.security.permission_guard import permission_guard
+        tool_call = tool_router.route(query)
+        if tool_call:
+            print(f"AI tool router result: {tool_call}")
+            if is_interrupted():
+                set_current_task("idle")
+                return "Cancelled"
+            set_current_task(f"tool: {tool_call.get('tool')}")
+            response = permission_guard.execute_tool_call(tool_call)
+            if is_interrupted():
+                set_current_task("idle")
+                return "Cancelled"
+            print(f"MCP/local tool response: {response}")
+            speak(response)
+            try:
+                command_history.update_last_command_response(str(response))
+            except Exception:
+                pass
+            try:
+                eel.ShowHood()
+            except:
+                pass
+            return
+    except Exception as router_error:
+        print(f"AI tool router skipped: {router_error}")
+
     # Check for aura mode at the beginning
     if "aura" in query.lower():
         try:
@@ -931,6 +1102,9 @@ def allCommands(message=1):
             
             # Execute each command sequentially
             for i, cmd in enumerate(commands, 1):
+                if is_interrupted():
+                    speak("Cancelled")
+                    break
                 print(f"Executing command {i}/{len(commands)}: {cmd}")
                 try:
                     # Add small delay between commands
@@ -938,6 +1112,8 @@ def allCommands(message=1):
                         time.sleep(0.5)
                     
                     # Process each command individually
+                    if is_interrupted():
+                        break
                     process_single_command(cmd.strip())
                     
                 except Exception as e:
@@ -958,7 +1134,8 @@ def allCommands(message=1):
             return
         
         # Single command - use existing logic
-        process_single_command(query)
+        if not is_interrupted():
+            process_single_command(query)
         
     except Exception as e:
         print(f"Error in allCommands: {e}")
@@ -968,6 +1145,7 @@ def allCommands(message=1):
         eel.ShowHood()
     except:
         pass
+    set_current_task("idle")
 
 def start_continuous_listen():
     """Start continuous listening mode"""
@@ -987,6 +1165,9 @@ def start_continuous_listen():
             print("✅ Ready for continuous listening")
             
             while continuous_active:
+                if is_interrupted():
+                    time.sleep(0.2)
+                    continue
                 try:
                     # Check if listening is paused
                     if listening_paused:
@@ -1016,6 +1197,9 @@ def start_continuous_listen():
                     text = recognizer.recognize_google(audio).lower()
                     if text and len(text.strip()) > 2:
                         print(f"✅ Recognized: {text}")
+                        if should_cancel_command(text):
+                            interruptJarvis("continuous_voice_command")
+                            continue
                         try:
                             eel.updateListenStatus(f"✅ Recognized: {text}")
                             eel.senderText(text)
@@ -1172,6 +1356,10 @@ def process_single_command(query):
     """Process a single command using existing logic"""
     global jarvis_muted
     try:
+        if is_interrupted() or should_cancel_command(query):
+            request_interrupt("command_cancel")
+            print("Processing cancelled")
+            return "Cancelled"
         print(f"Processing single command: '{query}'")
     
     

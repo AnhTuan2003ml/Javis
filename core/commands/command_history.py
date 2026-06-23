@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from core.utils.vietnam_time import vn_now
 
 class CommandHistory:
     def __init__(self):
@@ -30,7 +31,7 @@ class CommandHistory:
         """Add a command to history"""
         try:
             command_entry = {
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': vn_now().isoformat(),
                 'user_input': user_input,
                 'jarvis_response': jarvis_response,
                 'input_type': 'voice' if is_voice else 'text'
@@ -59,7 +60,7 @@ class CommandHistory:
         
         if date_filter:
             from datetime import datetime, timedelta
-            today = datetime.now()
+            today = vn_now()
             if date_filter == "today":
                 start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
             elif date_filter == "week":

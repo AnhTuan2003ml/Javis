@@ -3,6 +3,7 @@ import threading
 import time
 import json
 from datetime import datetime
+from core.utils.vietnam_time import vn_now
 
 class AdvancedPhoneIntegration:
     def __init__(self):
@@ -62,7 +63,7 @@ class AdvancedPhoneIntegration:
                     return {
                         'sender': address,
                         'message': body,
-                        'time': datetime.now().strftime('%H:%M')
+                        'time': vn_now().strftime('%H:%M')
                     }
             return None
         except Exception as e:

@@ -15,6 +15,7 @@ from typing import Optional, Dict, Any, List
 import zipfile
 import re
 import warnings
+from core.utils.vietnam_time import vn_now
 warnings.filterwarnings("ignore")
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -201,9 +202,9 @@ class VoiceAdvancedAI:
     def _init_gemini(self):
         try:
             import google.generativeai as genai
-            from core.ai.gemini_config import GEMINI_API_KEY
+            from core.ai.gemini_config import GEMINI_API_KEY, GEMINI_MODEL_NAME
             genai.configure(api_key=GEMINI_API_KEY)
-            self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+            self.gemini_model = genai.GenerativeModel(GEMINI_MODEL_NAME)
         except Exception as e:
             print(f"AI init error: {e}")
     
@@ -242,7 +243,7 @@ class VoiceAdvancedAI:
         events.append({
             'title': title,
             'time': event_time,
-            'created': datetime.now().isoformat()
+            'created': vn_now().isoformat()
         })
         
         with open(self.CALENDAR_JSON, 'w') as f:
@@ -307,14 +308,14 @@ class VoiceAdvancedAI:
                 events = json.load(f)
         
         if 'tomorrow' in title.lower():
-            date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+            date = (vn_now() + timedelta(days=1)).strftime('%Y-%m-%d')
             # amazonq-ignore-next-line
             title = title.replace('tomorrow', '').replace('Tomorrow', '').strip()
         elif 'today' in title.lower():
-            date = datetime.now().strftime('%Y-%m-%d')
+            date = vn_now().strftime('%Y-%m-%d')
             title = title.replace('today', '').replace('Today', '').strip()
         else:
-            date = datetime.now().strftime('%Y-%m-%d')
+            date = vn_now().strftime('%Y-%m-%d')
         
         events.append({
             'title': title,
@@ -509,7 +510,7 @@ class VoiceAdvancedAI:
     def daily_briefing(self):
         briefing = {}
         # amazonq-ignore-next-line
-        briefing["datetime"] = datetime.now().isoformat()
+        briefing["datetime"] = vn_now().isoformat()
         
         try:
             # amazonq-ignore-next-line
@@ -564,8 +565,8 @@ class VoiceAdvancedAI:
         if not events:
             return "No events scheduled"
         
-        today = datetime.now().strftime('%Y-%m-%d')
-        tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+        today = vn_now().strftime('%Y-%m-%d')
+        tomorrow = (vn_now() + timedelta(days=1)).strftime('%Y-%m-%d')
         
         today_events = []
         tomorrow_events = []
@@ -635,7 +636,7 @@ class VoiceAdvancedAI:
                 "calendar_events": len(calendar_data),
                 # amazonq-ignore-next-line
                 "memory_entries": len(memories) if isinstance(memories, dict) else 0,
-                "last_sync": datetime.now().isoformat(),
+                "last_sync": vn_now().isoformat(),
                 "device_id": socket.gethostname()
             }
             
@@ -655,7 +656,7 @@ class VoiceAdvancedAI:
     def realtime_transcription(self):
         try:
             # Create transcription file
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = vn_now().strftime('%Y%m%d_%H%M%S')
             filename = f"transcription_{timestamp}.txt"
             
             # Start Windows Speech Recognition
@@ -665,7 +666,7 @@ class VoiceAdvancedAI:
             # Create empty file for transcription
             # amazonq-ignore-next-line
             with open(filename, 'w') as f:
-                f.write(f"Transcription started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"Transcription started at {vn_now().strftime('%Y-%m-%d %H:%M:%S')}\n")
                 f.write("Speak now - text will appear here...\n\n")
             
             # Store in memory
@@ -910,7 +911,7 @@ class VoiceAdvancedAI:
     def debug_screen_code(self):
         """Capture screen and analyze visible code for errors"""
         try:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = vn_now().strftime('%Y%m%d_%H%M%S')
             screenshot_path = f"code_debug_{timestamp}.png"
             # amazonq-ignore-next-line
             screenshot = pyautogui.screenshot()
@@ -1073,7 +1074,7 @@ Be specific and accurate about the actual code provided."""
                     return self._fallback_posture_advice()
                 
                 # Save webcam image
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                timestamp = vn_now().strftime('%Y%m%d_%H%M%S')
                 image_path = f"posture_analysis_{timestamp}.jpg"
                 cv2.imwrite(image_path, frame)
                 
@@ -1095,7 +1096,7 @@ Be specific and accurate about the actual code provided."""
                 
                 # Store posture check in memory
                 self._memory_set("posture_check", {
-                    "timestamp": datetime.now().isoformat(),
+                    "timestamp": vn_now().isoformat(),
                     "image_path": image_path,
                     "analysis": analysis,
                     "advice_given": True
@@ -1214,8 +1215,8 @@ Be specific and accurate about the actual code provided."""
             # Set eye care reminder
             self._memory_set("eye_care_reminder", {
                 # amazonq-ignore-next-line
-                "timestamp": datetime.now().isoformat(),
-                "next_reminder": (datetime.now() + timedelta(minutes=20)).isoformat(),
+                "timestamp": vn_now().isoformat(),
+                "next_reminder": (vn_now() + timedelta(minutes=20)).isoformat(),
                 "rule_20_20_20": True
             })
             
@@ -1229,14 +1230,14 @@ Be specific and accurate about the actual code provided."""
     def daily_health_log(self, entry=""):
         """Track daily health metrics and habits"""
         try:
-            today = datetime.now().strftime('%Y-%m-%d')
+            today = vn_now().strftime('%Y-%m-%d')
             
             if entry:
                 # Log specific health entry
                 self._memory_set(f"health_log_{today}", {
                     "date": today,
                     "entry": entry,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": vn_now().isoformat()
                 })
                 # amazonq-ignore-next-line
                 # amazonq-ignore-next-line
@@ -1254,7 +1255,7 @@ Be specific and accurate about the actual code provided."""
                 recent_logs = []
                 # amazonq-ignore-next-line
                 for i in range(7):  # Last 7 days
-                    date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+                    date = (vn_now() - timedelta(days=i)).strftime('%Y-%m-%d')
                     logs = self._memory_get_all(f"health_log_{date}")
                     if logs:
                         recent_logs.extend(logs)
@@ -1284,15 +1285,15 @@ Be specific and accurate about the actual code provided."""
     def mood_tracker(self, mood=""):
         """Track and analyze mood patterns"""
         try:
-            today = datetime.now().strftime('%Y-%m-%d')
+            today = vn_now().strftime('%Y-%m-%d')
             
             if mood:
                 # Log mood entry
                 mood_data = {
                     "date": today,
                     "mood": mood.lower(),
-                    "timestamp": datetime.now().isoformat(),
-                    "time_of_day": datetime.now().strftime('%H:%M')
+                    "timestamp": vn_now().isoformat(),
+                    "time_of_day": vn_now().strftime('%H:%M')
                 }
                 
                 # amazonq-ignore-next-line
@@ -1319,7 +1320,7 @@ Be specific and accurate about the actual code provided."""
                 # Show mood analysis
                 recent_moods = []
                 for i in range(7):  # Last 7 days
-                    date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+                    date = (vn_now() - timedelta(days=i)).strftime('%Y-%m-%d')
                     # amazonq-ignore-next-line
                     moods = self._memory_get_all(f"mood_{date}")
                     recent_moods.extend(moods)
@@ -1374,7 +1375,7 @@ Be specific and accurate about the actual code provided."""
             # Log meditation session
             self._memory_set("meditation_session", {
                 # amazonq-ignore-next-line
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": vn_now().isoformat(),
                 "duration_minutes": minutes,
                 "completed": True
             })
@@ -1427,7 +1428,7 @@ Be specific and accurate about the actual code provided."""
                 "original": file_path,
                 "encrypted": encrypted_file,
                 # amazonq-ignore-next-line
-                "timestamp": datetime.now().isoformat()
+                "timestamp": vn_now().isoformat()
             })
             
             return f"File encrypted successfully: {encrypted_file}"
@@ -1526,7 +1527,7 @@ Be specific and accurate about the actual code provided."""
             # Store scan results
             self._memory_set("security_scan", {
                 # amazonq-ignore-next-line
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": vn_now().isoformat(),
                 "suspicious_count": len(suspicious_processes),
                 "high_cpu_count": len(high_cpu_processes),
                 "system_health": "normal" if cpu_avg < 70 and memory_usage < 80 else "elevated"
@@ -1594,7 +1595,7 @@ Be specific and accurate about the actual code provided."""
             self._memory_set("phishing_scan", {
                 "url": url,
                 # amazonq-ignore-next-line
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": vn_now().isoformat(),
                 "risk_level": "high" if len(suspicious_indicators) > 2 else "low",
                 "indicators": suspicious_indicators
             })
@@ -1627,7 +1628,7 @@ Be specific and accurate about the actual code provided."""
                     "time_restrictions": "School hours",
                     "blocked_sites": ["adult content", "gambling", "violence"],
                     # amazonq-ignore-next-line
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": vn_now().isoformat()
                 }
                 
                 self._memory_set("parental_controls", controls)
@@ -1651,7 +1652,7 @@ Be specific and accurate about the actual code provided."""
                 # Disable parental controls
                 controls = {
                     "enabled": False,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": vn_now().isoformat()
                 }
                 
                 self._memory_set("parental_controls", controls)
@@ -1665,7 +1666,7 @@ Be specific and accurate about the actual code provided."""
     # amazonq-ignore-next-line
     def predictive_assistance(self, auto_speak: bool = False):
         suggestions = []
-        now = datetime.now()
+        now = vn_now()
         hour = now.hour
         
         if hour >= 22:
@@ -1686,7 +1687,7 @@ Be specific and accurate about the actual code provided."""
     
     def _log_action_with_context(self, action_name: str):
         data = self._load_learning_memory()
-        now = datetime.now()
+        now = vn_now()
         day = now.strftime("%A")
         hour = now.hour
         time_of_day = "morning" if hour < 12 else "afternoon" if hour < 18 else "evening"
@@ -1733,7 +1734,7 @@ Be specific and accurate about the actual code provided."""
     
     def auto_suggest_with_popup(self):
         data = self._load_learning_memory()
-        now = datetime.now()
+        now = vn_now()
         day = now.strftime("%A")
         hour = now.hour
         time_of_day = "morning" if hour < 12 else "afternoon" if hour < 18 else "evening"
@@ -1795,7 +1796,7 @@ Be specific and accurate about the actual code provided."""
                 try:
                     enabled_data = self._memory_get_all('proactive_mode_enabled')
                     if enabled_data and enabled_data[0]:
-                        now = datetime.now()
+                        now = vn_now()
                         if 8 <= now.hour <= 22:
                             self.auto_suggest_with_popup()
                     time.sleep(1800)

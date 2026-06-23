@@ -1,5 +1,26 @@
 $(document).ready(function () {
 
+    function interruptJarvisUI(reason) {
+        try {
+            $('#listeningStatus').text('Cancelling...');
+        } catch (e) {}
+        try {
+            $('#SiriWave').attr('hidden', true);
+            $('#ContinuousListen').attr('hidden', true);
+            $('#Oval').attr('hidden', false);
+            $('#MicBtn').attr('hidden', false);
+            $('#SendBtn').attr('hidden', true);
+        } catch (e) {}
+        try {
+            eel.interruptJarvis(reason || 'ui_button')(function(result) {
+                try { $('#listeningStatus').text(result || 'Cancelled'); } catch (e) {}
+            });
+        } catch (e) {
+            console.log('interruptJarvis failed', e);
+        }
+    }
+
+
     eel.init()()
 
     $('.text').textillate({
@@ -384,20 +405,29 @@ $(document).ready(function () {
     
     // Update real-time data
     function updateRealTimeData() {
-        // Update time
+        // Force Vietnam local time regardless of the PC/server timezone
+        const vietnamTimeZone = 'Asia/Ho_Chi_Minh';
         const now = new Date();
-        const timeStr = now.toLocaleTimeString('en-US', { hour12: true });
+        const timeStr = now.toLocaleTimeString('en-US', { 
+            hour12: true,
+            timeZone: vietnamTimeZone
+        });
         const dateStr = now.toLocaleDateString('en-US', { 
             year: 'numeric', 
             month: 'long', 
-            day: 'numeric' 
+            day: 'numeric',
+            timeZone: vietnamTimeZone
         });
         
         $('#currentTime').text(timeStr);
         $('#currentDate').text(dateStr);
         
-        // Update greeting based on time
-        const hour = now.getHours();
+        // Update greeting based on Vietnam time
+        const hour = Number(new Intl.DateTimeFormat('en-US', {
+            hour: 'numeric',
+            hour12: false,
+            timeZone: vietnamTimeZone
+        }).format(now).replace('24', '0'));
         let greeting = 'Good Evening';
         if (hour >= 5 && hour < 12) greeting = 'Good Morning';
         else if (hour >= 12 && hour < 17) greeting = 'Good Afternoon';
@@ -484,6 +514,18 @@ $(document).ready(function () {
         eel.allCommands(cmd);
     });
     
+    // Cancel / interrupt buttons shown while Jarvis is listening/responding
+    $('.jarvis-interrupt-btn').off('click').click(function() {
+        interruptJarvisUI('ui_button');
+    });
+
+    // Press Escape to interrupt Jarvis quickly
+    $(document).off('keydown.jarvisInterrupt').on('keydown.jarvisInterrupt', function(e) {
+        if (e.key === 'Escape') {
+            interruptJarvisUI('escape_key');
+        }
+    });
+
     // Start updates
     setInterval(updateSystemMetrics, 2000);
     setInterval(updateVoiceLevel, 800);
@@ -584,41 +626,36 @@ $(document).ready(function () {
     // Initial battery update
     setTimeout(updateBatteryStatus, 1000);
     
-    // Weather function for Belgaum
+    // Weather function for Vietnam (Hanoi by default)
     function updateWeather() {
-        const apiKey = 'your_api_key_here'; // Replace with actual API key
-        const city = 'Belgaum';
-        const country = 'IN';
-        
-        // Using OpenWeatherMap API (free tier)
-        const url = `https://api.openweathermap.org/data/2.5/weather?q=${city},${country}&appid=${apiKey}&units=metric`;
+        const displayLocation = 'Hà Nội, VN';
+        const fallbackWeather = `28°C ${displayLocation}`;
+        const url = 'https://wttr.in/Hanoi,Vietnam?format=j1';
         
         fetch(url)
             .then(response => response.json())
             .then(data => {
-                const temp = Math.round(data.main.temp);
-                const description = data.weather[0].main;
-                const humidity = data.main.humidity;
+                const current = data.current_condition && data.current_condition[0];
+                if (!current) throw new Error('Missing weather data');
+                const temp = Math.round(Number(current.temp_C));
+                const description = current.weatherDesc && current.weatherDesc[0] ? current.weatherDesc[0].value : '';
                 
-                $('#weatherText').text(`${temp}°C Belgaum, IN`);
+                $('#weatherText').text(`${temp}°C ${displayLocation}`);
                 
                 // Update weather icon based on condition
-                const iconMap = {
-                    'Clear': 'bi-sun',
-                    'Clouds': 'bi-cloud',
-                    'Rain': 'bi-cloud-rain',
-                    'Thunderstorm': 'bi-cloud-lightning',
-                    'Snow': 'bi-cloud-snow',
-                    'Mist': 'bi-cloud-fog',
-                    'Fog': 'bi-cloud-fog'
-                };
-                
-                const iconClass = iconMap[description] || 'bi-cloud-sun';
+                const desc = description.toLowerCase();
+                let iconClass = 'bi-cloud-sun';
+                if (desc.includes('sun') || desc.includes('clear')) iconClass = 'bi-sun';
+                else if (desc.includes('cloud') || desc.includes('overcast')) iconClass = 'bi-cloud';
+                else if (desc.includes('rain') || desc.includes('drizzle')) iconClass = 'bi-cloud-rain';
+                else if (desc.includes('thunder')) iconClass = 'bi-cloud-lightning';
+                else if (desc.includes('snow')) iconClass = 'bi-cloud-snow';
+                else if (desc.includes('mist') || desc.includes('fog')) iconClass = 'bi-cloud-fog';
                 $('#weatherIcon').attr('class', `bi ${iconClass}`);
             })
             .catch(error => {
-                // Fallback weather data for Belgaum
-                $('#weatherText').text('28°C Belgaum, IN');
+                // Fallback weather data for Vietnam
+                $('#weatherText').text(fallbackWeather);
                 $('#weatherIcon').attr('class', 'bi bi-cloud-sun');
             });
     }
@@ -685,7 +722,9 @@ $(document).ready(function () {
     function loadAIConfig() {
         eel.readConfigFiles()(function(configs) {
             if (configs.ai_config) {
-                $('#currentAI').text(configs.ai_config.provider || 'GROQ');
+                const provider = String(configs.ai_config.provider || 'Ollama').toUpperCase();
+                $('#currentAI').text(provider);
+                $('#currentAIProvider').text(provider);
             }
             if (configs.voice_config) {
                 $('#currentVoice').text(configs.voice_config.gender === 'female' ? 'Female' : 'Male');

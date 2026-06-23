@@ -4,6 +4,7 @@ import time
 import sys
 import threading
 from datetime import datetime
+from core.utils.vietnam_time import vn_now
 #python -c "from core.ai.dual_ai import get_simple_response; result = get_simple_response('trivia game'); print(result)"
 
 #  python -c "from core.commands.command import allCommands; allCommands('open notepad')"
@@ -50,11 +51,11 @@ def runProactiveJarvis():
         time.sleep(5)
         
         suggestion_count = 0
-        start_time = datetime.now()
+        start_time = vn_now()
         
         while True:
             try:
-                now = datetime.now()
+                now = vn_now()
                 elapsed_minutes = (now - start_time).total_seconds() / 60
                 
                 # Show suggestions after 1 minute, then after 2 minutes, then stop

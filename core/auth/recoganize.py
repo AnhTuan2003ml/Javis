@@ -1,143 +1,230 @@
-import cv2
-import time
+# FACE AUTH - supports IP camera.
+# Default IP camera: http://192.168.1.5:8080
+
 import os
+os.environ.setdefault("OPENCV_VIDEOIO_MSMF_ENABLE_HW_TRANSFORMS", "0")
+
+import json
+import time
+import cv2
 import numpy as np
 
-# REQUIREMENTS:
-# - Trained ID: 1 (Primary authenticated user)
-# - Accept IDs: 5, 20 for authentication
-# - Available sample IDs: 21, 22 (not trained yet)
+
+def _load_camera_config():
+    cfg = {
+        "source_type": "ip_snapshot",
+        "ip_camera_url": "http://192.168.1.5:8080/video",
+        "ip_snapshot_url": "http://192.168.1.5:8080/shot.jpg",
+        "camera_index": 0,
+        "camera_backend": "MSMF",
+        "width": 640,
+        "height": 480,
+        "timeout_seconds": 30,
+    }
+    try:
+        if os.path.exists("config/camera_config.json"):
+            with open("config/camera_config.json", "r", encoding="utf-8") as f:
+                cfg.update(json.load(f))
+    except Exception as e:
+        print(f"[Camera] Could not read config/camera_config.json: {e}")
+
+    if os.environ.get("JARVIS_CAMERA_SOURCE"):
+        cfg["source_type"] = os.environ["JARVIS_CAMERA_SOURCE"].strip().lower()
+    if os.environ.get("JARVIS_IP_CAMERA_URL"):
+        cfg["ip_camera_url"] = os.environ["JARVIS_IP_CAMERA_URL"].strip()
+    if os.environ.get("JARVIS_IP_SNAPSHOT_URL"):
+        cfg["ip_snapshot_url"] = os.environ["JARVIS_IP_SNAPSHOT_URL"].strip()
+    if os.environ.get("JARVIS_CAMERA_INDEX") is not None:
+        try:
+            cfg["camera_index"] = int(os.environ["JARVIS_CAMERA_INDEX"])
+        except ValueError:
+            pass
+    if os.environ.get("JARVIS_CAMERA_BACKEND"):
+        cfg["camera_backend"] = os.environ["JARVIS_CAMERA_BACKEND"].upper()
+    return cfg
+
+
+def _backend_value(name):
+    name = str(name or "MSMF").upper()
+    if name == "DSHOW":
+        return cv2.CAP_DSHOW
+    if name == "ANY":
+        return cv2.CAP_ANY
+    return cv2.CAP_MSMF
+
+
+def _show_message(window_name, message, seconds=3):
+    img = np.zeros((360, 760, 3), dtype=np.uint8)
+    y = 70
+    for line in str(message).split("\n"):
+        cv2.putText(img, line[:85], (25, y), cv2.FONT_HERSHEY_SIMPLEX, 0.58, (255, 255, 255), 1)
+        y += 38
+    cv2.imshow(window_name, img)
+    end = time.time() + seconds
+    while time.time() < end:
+        if cv2.waitKey(100) & 0xFF == 27:
+            break
+
+
+def _open_camera_source(cfg):
+    source_type = str(cfg.get("source_type", "ip_snapshot")).lower()
+    width = int(cfg.get("width", 640))
+    height = int(cfg.get("height", 480))
+
+    if source_type in ("ip", "ip_stream", "ip_camera", "stream"):
+        url = cfg.get("ip_camera_url") or "http://192.168.1.5:8080/video"
+        print(f"[Camera] IP STREAM: {url}")
+        cap = cv2.VideoCapture(url)
+        return {"mode": "cap", "cap": cap, "label": url}
+
+    if source_type in ("ip_snapshot", "snapshot", "http_snapshot"):
+        url = cfg.get("ip_snapshot_url") or "http://192.168.1.5:8080/shot.jpg"
+        print(f"[Camera] IP SNAPSHOT: {url}")
+        return {"mode": "snapshot", "url": url, "label": url}
+
+    index = int(cfg.get("camera_index", 0))
+    backend_name = str(cfg.get("camera_backend", "MSMF")).upper()
+    backend = _backend_value(backend_name)
+    print(f"[Camera] LOCAL: index={index}, backend={backend_name}")
+    cap = cv2.VideoCapture(index, backend)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+    return {"mode": "cap", "cap": cap, "label": f"index={index} backend={backend_name}"}
+
+
+def _read_frame(source):
+    if source.get("mode") == "snapshot":
+        try:
+            import requests
+            resp = requests.get(source["url"], timeout=3)
+            resp.raise_for_status()
+            arr = np.frombuffer(resp.content, dtype=np.uint8)
+            frame = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            if frame is None:
+                return False, None
+            return True, frame
+        except Exception as e:
+            print(f"[Camera] snapshot read failed: {e}")
+            return False, None
+
+    cap = source.get("cap")
+    if cap is None or not cap.isOpened():
+        return False, None
+    return cap.read()
+
+
+def _release_camera_source(source):
+    try:
+        cap = source.get("cap")
+        if cap is not None:
+            cap.release()
+    except Exception:
+        pass
+
 
 def AuthenticateFace():
-    trainer_path = 'core/auth/trainer/trainer.yml'
-    cascadePath = "core/auth/haarcascade_frontalface_default.xml"
+    window_name = "JARVIS Face Auth - IP Camera"
+    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    _show_message(window_name, "Opening IP camera...", seconds=1)
+
+    trainer_path = "core/auth/trainer/trainer.yml"
+    cascade_path = "core/auth/haarcascade_frontalface_default.xml"
 
     if not os.path.exists(trainer_path):
         print("Trainer file not found. Train first.")
+        _show_message(window_name, "Trainer file not found.\nRun: python .\\core\\auth\\sample.py\nThen: python .\\core\\auth\\trainer.py", seconds=5)
+        cv2.destroyWindow(window_name)
         return 0, None
 
-    if not os.path.exists(cascadePath):
+    if not os.path.exists(cascade_path):
         print("Cascade file missing.")
+        _show_message(window_name, "Cascade file missing:\ncore/auth/haarcascade_frontalface_default.xml", seconds=5)
+        cv2.destroyWindow(window_name)
         return 0, None
 
-    recognizer = cv2.face.LBPHFaceRecognizer_create()
-    recognizer.read(trainer_path)
-    faceCascade = cv2.CascadeClassifier(cascadePath)
-    
-    cam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    cam.set(3, 640)
-    cam.set(4, 480)
-    
+    try:
+        recognizer = cv2.face.LBPHFaceRecognizer_create()
+        recognizer.read(trainer_path)
+    except Exception as e:
+        print(f"Could not load face recognizer: {e}")
+        _show_message(window_name, f"Could not load trainer/model.\n{e}", seconds=5)
+        cv2.destroyWindow(window_name)
+        return 0, None
+
+    cfg = _load_camera_config()
+    source = _open_camera_source(cfg)
+    _show_message(window_name, "Camera source:\n" + source.get("label", "unknown") + "\nWaiting for frame...", seconds=1)
+
+    face_cascade = cv2.CascadeClassifier(cascade_path)
     font = cv2.FONT_HERSHEY_SIMPLEX
-    match_count = 0
     required_matches = 3
-    
-    # Advanced lighting adaptation
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    
+    match_count = 0
     start_time = time.time()
-    
+    timeout = int(cfg.get("timeout_seconds", 30))
+    no_frame_count = 0
+
     while True:
-        ret, frame = cam.read()
-        if not ret:
+        ret, frame = _read_frame(source)
+
+        if not ret or frame is None:
+            no_frame_count += 1
+            msg = np.zeros((360, 760, 3), dtype=np.uint8)
+            cv2.putText(msg, "No frame from IP camera", (25, 95), font, 0.75, (255, 255, 255), 2)
+            cv2.putText(msg, source.get("label", "")[:80], (25, 145), font, 0.50, (255, 255, 255), 1)
+            cv2.putText(msg, "Check phone IP camera app / WiFi", (25, 195), font, 0.60, (255, 255, 255), 1)
+            cv2.putText(msg, "Press ESC to skip", (25, 245), font, 0.60, (255, 255, 255), 1)
+            cv2.imshow(window_name, msg)
+            print(f"[Camera] no frame #{no_frame_count}")
+            if cv2.waitKey(300) & 0xFF == 27:
+                break
+            if no_frame_count >= 80:
+                print("[Camera] Too many failed frames, stop Face Auth.")
+                break
             continue
-            
-        # Multi-stage preprocessing for any lighting
+
+        no_frame_count = 0
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        # Adaptive lighting correction
-        mean_brightness = np.mean(gray)
-        if mean_brightness < 80:  # Dark
-            gray = cv2.convertScaleAbs(gray, alpha=1.5, beta=30)
-        elif mean_brightness > 180:  # Bright
-            gray = cv2.convertScaleAbs(gray, alpha=0.7, beta=-20)
-        
-        # Apply CLAHE for local contrast
-        gray = clahe.apply(gray)
-        
-        # Gaussian blur for noise reduction
-        gray = cv2.GaussianBlur(gray, (3, 3), 0)
-        
-        # Multi-scale face detection
-        faces1 = faceCascade.detectMultiScale(gray, 1.1, 4, minSize=(60, 60))
-        faces2 = faceCascade.detectMultiScale(gray, 1.05, 3, minSize=(50, 50))
-        
-        # Combine detections
-        all_faces = list(faces1) + list(faces2)
-        faces = []
-        
-        # Remove duplicates
-        for face in all_faces:
-            x, y, w, h = face
-            is_duplicate = False
-            for existing in faces:
-                ex, ey, ew, eh = existing
-                if abs(x - ex) < 30 and abs(y - ey) < 30:
-                    is_duplicate = True
-                    break
-            if not is_duplicate and w > 50 and h > 50:
-                faces.append(face)
-        
-        name = "Unknown"
-        confidence_txt = "0%"
-        
+        gray = cv2.equalizeHist(gray)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(70, 70))
+
+        cv2.putText(frame, "IP FACE AUTH - Press ESC to skip", (10, 28), font, 0.65, (0, 255, 0), 2)
+        cv2.putText(frame, source.get("label", "")[:65], (10, 58), font, 0.48, (0, 255, 255), 1)
+
         for (x, y, w, h) in faces:
-            roi_gray = gray[y:y+h, x:x+w]
-            
-            # Multiple size processing for robustness
-            sizes = [100, 120, 150]
-            predictions = []
-            
-            for size in sizes:
-                resized_roi = cv2.resize(roi_gray, (size, size))
-                # Additional preprocessing
-                resized_roi = cv2.equalizeHist(resized_roi)
-                
-                id_pred, conf = recognizer.predict(resized_roi)
-                predictions.append((id_pred, conf))
-            
-            # Get best prediction
-            best_pred = min(predictions, key=lambda x: x[1])
-            id_pred, confidence = best_pred
-            
-            accuracy = round(100 - confidence)
-            
-            # Debug info
-            cv2.putText(frame, f"ID:{id_pred} Conf:{confidence:.1f}", (x, y+h+30), font, 0.5, (0,255,255), 1)
-            
-            # Accept trained IDs with reasonable confidence
-            if confidence < 80 and id_pred in [24, 25, 26, 27, 28]:  # Accept IDs 1, 5, 20
-                name = "User"
-                confidence_txt = f"{accuracy}%"
+            roi = gray[y:y+h, x:x+w]
+            roi = cv2.resize(roi, (200, 200))
+            try:
+                id_pred, confidence = recognizer.predict(roi)
+            except Exception:
+                id_pred, confidence = -1, 999
+
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+            cv2.putText(frame, f"ID:{id_pred} Conf:{confidence:.1f}", (x, y+h+25), font, 0.55, (0, 255, 255), 1)
+
+            if confidence < 85:
                 match_count += 1
-                
-                cv2.putText(frame, f"Verifying... {match_count}/{required_matches}", (10, 30), font, 0.7, (0,255,0), 2)
-                
+                cv2.putText(frame, f"Verifying {match_count}/{required_matches}", (10, 90), font, 0.65, (0, 255, 0), 2)
                 if match_count >= required_matches:
-                    cam.release()
-                    cv2.destroyAllWindows()
                     print(f"Authenticated: User ID {id_pred}")
+                    _release_camera_source(source)
+                    cv2.destroyAllWindows()
                     return 1, id_pred
             else:
                 match_count = max(match_count - 1, 0)
-            
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0,255,0), 2)
-            cv2.putText(frame, name, (x, y-10), font, 0.8, (255,255,255), 2)
-            cv2.putText(frame, confidence_txt, (x, y+h+15), font, 0.6, (255,255,0), 1)
-        
-        # Lighting indicator
-        light_status = "Dark" if mean_brightness < 80 else "Bright" if mean_brightness > 180 else "Good"
-        cv2.putText(frame, f"Light: {light_status}", (10, 60), font, 0.5, (255,255,255), 1)
-        
-        cv2.imshow("JARVIS Face Auth", frame)
-        
-        if time.time() - start_time > 30:
-            print("Timeout")
+
+        cv2.imshow(window_name, frame)
+
+        if time.time() - start_time > timeout:
+            print("Face Auth timeout")
             break
-            
         if cv2.waitKey(1) & 0xFF == 27:
+            print("Face Auth skipped by ESC")
             break
-    
-    cam.release()
+
+    _release_camera_source(source)
     cv2.destroyAllWindows()
     return 0, None
+
+
+if __name__ == "__main__":
+    print(AuthenticateFace())

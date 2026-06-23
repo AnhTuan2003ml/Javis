@@ -3,6 +3,7 @@ import threading
 import time
 import json
 from datetime import datetime
+from core.utils.vietnam_time import vn_now
 
 class PhoneNotificationMonitor:
     def __init__(self):
@@ -32,7 +33,7 @@ class PhoneNotificationMonitor:
                             'app': app_name,
                             'title': f'New {app_name} message',
                             'text': 'You have a new message',
-                            'time': datetime.now().strftime('%H:%M')
+                            'time': vn_now().strftime('%H:%M')
                         }
             
             # Fallback: try to get app from active notifications
@@ -43,11 +44,11 @@ class PhoneNotificationMonitor:
             
             if result2.returncode == 0 and result2.stdout:
                 if 'whatsapp' in result2.stdout.lower():
-                    return {'app': 'WhatsApp', 'title': 'New WhatsApp message', 'text': 'You have a new message', 'time': datetime.now().strftime('%H:%M')}
+                    return {'app': 'WhatsApp', 'title': 'New WhatsApp message', 'text': 'You have a new message', 'time': vn_now().strftime('%H:%M')}
                 elif 'instagram' in result2.stdout.lower():
-                    return {'app': 'Instagram', 'title': 'New Instagram notification', 'text': 'You have a new notification', 'time': datetime.now().strftime('%H:%M')}
+                    return {'app': 'Instagram', 'title': 'New Instagram notification', 'text': 'You have a new notification', 'time': vn_now().strftime('%H:%M')}
                 elif 'gmail' in result2.stdout.lower():
-                    return {'app': 'Gmail', 'title': 'New email', 'text': 'You have a new email', 'time': datetime.now().strftime('%H:%M')}
+                    return {'app': 'Gmail', 'title': 'New email', 'text': 'You have a new email', 'time': vn_now().strftime('%H:%M')}
             
             return self.get_fallback_notification()
         except Exception as e:
@@ -67,7 +68,7 @@ class PhoneNotificationMonitor:
                 
                 if 'NotificationRecord(' in line and not in_notification:
                     in_notification = True
-                    current_notification = {'time': datetime.now().strftime('%H:%M')}
+                    current_notification = {'time': vn_now().strftime('%H:%M')}
                     continue
                 
                 if in_notification:
@@ -143,7 +144,7 @@ class PhoneNotificationMonitor:
                     'app': current_notification.get('app', 'Phone'),
                     'title': current_notification.get('title', f"New {current_notification.get('app', 'Phone')} notification"),
                     'text': current_notification.get('text', 'Check your phone for details'),
-                    'time': current_notification.get('time', datetime.now().strftime('%H:%M'))
+                    'time': current_notification.get('time', vn_now().strftime('%H:%M'))
                 }
             
             return self.get_fallback_notification()
@@ -158,7 +159,7 @@ class PhoneNotificationMonitor:
             'app': 'Phone',
             'title': 'New notification received',
             'text': 'Check your phone for details',
-            'time': datetime.now().strftime('%H:%M')
+            'time': vn_now().strftime('%H:%M')
         }
     
     def parse_notifications(self, dump_text):
@@ -177,7 +178,7 @@ class PhoneNotificationMonitor:
                 if 'NotificationRecord(' in line:
                     if current_notification and 'app' in current_notification:
                         notifications.append(current_notification)
-                    current_notification = {'time': datetime.now().strftime('%H:%M')}
+                    current_notification = {'time': vn_now().strftime('%H:%M')}
                 
                 elif 'pkg=' in line and current_notification:
                     try:

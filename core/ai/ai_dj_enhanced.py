@@ -2,6 +2,7 @@ import subprocess
 import pyautogui
 import time
 from datetime import datetime
+from core.utils.vietnam_time import vn_now
 
 def ai_dj_mode_enhanced(command=""):
     try:
@@ -24,7 +25,7 @@ def ai_dj_mode_enhanced(command=""):
 
 def start_dj_session():
     try:
-        current_hour = datetime.now().hour
+        current_hour = vn_now().hour
         if 6 <= current_hour <= 12:
             return dj_focus_mode()
         elif 13 <= current_hour <= 18:
@@ -38,7 +39,7 @@ def start_dj_session():
 
 def dj_party_mode():
     try:
-        subprocess.run('start chrome https://www.youtube.com', shell=True)
+        subprocess.run('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.youtube.com"', shell=True)
         time.sleep(3)
         pyautogui.click(640, 100)  # Search box
         time.sleep(1)
@@ -53,7 +54,7 @@ def dj_party_mode():
 
 def dj_chill_mode():
     try:
-        subprocess.run('start chrome https://www.youtube.com', shell=True)
+        subprocess.run('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.youtube.com"', shell=True)
         time.sleep(3)
         pyautogui.click(640, 100)
         time.sleep(1)
@@ -68,7 +69,7 @@ def dj_chill_mode():
 
 def dj_focus_mode():
     try:
-        subprocess.run('start chrome https://www.youtube.com', shell=True)
+        subprocess.run('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.youtube.com"', shell=True)
         time.sleep(3)
         pyautogui.click(640, 100)
         time.sleep(1)
@@ -87,7 +88,7 @@ def dj_auto_mode():
         import random
         playlist = random.choice(playlists)
         
-        subprocess.run('start chrome https://www.youtube.com', shell=True)
+        subprocess.run('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.youtube.com"', shell=True)
         time.sleep(3)
         pyautogui.click(640, 100)
         time.sleep(1)
@@ -102,7 +103,7 @@ def dj_auto_mode():
 
 def ai_music_selection(request):
     try:
-        subprocess.run('start chrome https://www.youtube.com', shell=True)
+        subprocess.run('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.youtube.com"', shell=True)
         time.sleep(3)
         pyautogui.click(640, 100)
         time.sleep(1)

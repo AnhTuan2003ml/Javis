@@ -10,6 +10,7 @@ from playsound import playsound
 import eel
 import threading
 from datetime import datetime, timedelta
+from core.utils.vietnam_time import vn_now
 try:
     import pyaudio
     PYAUDIO_AVAILABLE = True
@@ -600,11 +601,11 @@ def chatBot(query):
             response = "The capital of India is New Delhi."
         elif "time" in user_input:
             import datetime
-            current_time = datetime.datetime.now().strftime("%I:%M %p")
+            current_time = vn_now().strftime("%I:%M %p")
             response = f"The current time is {current_time}"
         elif "date" in user_input:
             import datetime
-            current_date = datetime.datetime.now().strftime("%B %d, %Y")
+            current_date = vn_now().strftime("%B %d, %Y")
             response = f"Today's date is {current_date}"
         elif "hello" in user_input or "hi" in user_input:
             response = "Hello! I'm Jarvis, your AI assistant. How can I help you today?"

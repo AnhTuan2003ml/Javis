@@ -7,6 +7,7 @@ from datetime import datetime
 
 # Suppress AI library warnings
 import warnings
+from core.utils.vietnam_time import vn_now
 warnings.filterwarnings("ignore")
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -90,7 +91,7 @@ def get_context_aware_greeting(user_id=None):
     from datetime import datetime
     import json
     
-    current_hour = datetime.now().hour
+    current_hour = vn_now().hour
     
     if 5 <= current_hour < 12:
         time_greeting = "Good Morning"
@@ -427,8 +428,14 @@ def start():
     @eel.expose
     def setAIProvider(provider):
         try:
+            provider = str(provider or "").strip().lower()
             with open('config/ai_config.json', 'w') as f:
-                json.dump({"ai_provider": provider.lower()}, f)
+                json.dump({"ai_provider": provider}, f)
+            try:
+                from core.ai.dual_ai import dual_ai
+                dual_ai._set_ai_provider(provider)
+            except Exception as runtime_error:
+                print(f"AI provider runtime reload failed: {runtime_error}")
             return f"AI provider set to {provider}"
         except Exception as e:
             return f"Error: {e}"
@@ -441,7 +448,26 @@ def start():
                 provider = config.get('ai_provider', 'groq')
                 return provider.capitalize()
         except:
-            return "Groq"
+            return "Ollama"
+
+    @eel.expose
+    def readConfigFiles():
+        try:
+            ai_provider = getAIProvider()
+            voice_gender = getVoiceGender()
+            language = getCurrentLanguage()
+            return {
+                "ai_config": {"provider": ai_provider},
+                "voice_config": {"gender": str(voice_gender).lower()},
+                "language": str(language).lower()
+            }
+        except Exception as e:
+            print(f"readConfigFiles error: {e}")
+            return {
+                "ai_config": {"provider": "Ollama"},
+                "voice_config": {"gender": "male"},
+                "language": "english"
+            }
     
     @eel.expose
     def setResponseStyle(style):
@@ -779,6 +805,26 @@ def start():
             return response
             
         try:
+            # Use audio from IP camera when configured in config/camera_config.json
+            try:
+                from core.voice.ip_audio import should_use_ip_audio, recognize_from_ip_audio
+                if should_use_ip_audio():
+                    print('Chatbot listening from IP camera audio...')
+                    query = recognize_from_ip_audio(language='en-IN')
+                    if query and query.strip():
+                        print(f"Chatbot recognized from IP audio: {query}")
+                        return query
+                    return ""
+            except Exception as ip_audio_error:
+                print(f"Chatbot IP audio error: {ip_audio_error}")
+                try:
+                    import json as _json
+                    _cfg = _json.load(open('config/camera_config.json', 'r', encoding='utf-8'))
+                    if not _cfg.get('fallback_to_local_microphone', False):
+                        return ""
+                except Exception:
+                    return ""
+
             import speech_recognition as sr
             r = sr.Recognizer()
             with sr.Microphone() as source:

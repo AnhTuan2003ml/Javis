@@ -1,3 +1,4 @@
+from core.utils.vietnam_time import vn_now, vn_fromtimestamp
 """
 New Features Extension - Single file to add features without modifying dual_ai.py
 """
@@ -345,7 +346,7 @@ class NewFeatures:
                     with open(reminders_file, 'r') as f:
                         reminders = json.load(f)
                     
-                    now = datetime.now()
+                    now = vn_now()
                     active_reminders = []
                     
                     for reminder in reminders:
@@ -499,6 +500,20 @@ class NewFeatures:
             # Check for close website commands first
             if any(word in query.lower() for word in ['close ', 'quit ', 'exit ', 'kill ']) and any(word in query.lower() for word in ['web', 'website', 'site', 'browser']):
                 return self.close_website(query)
+            
+            # Check for website/navigation commands before app opener.
+            # This fixes commands like: "open chrome go to youtube" / "go to youtube".
+            common_sites = [
+                'youtube', 'google', 'facebook', 'gmail', 'github', 'zalo', 'chatgpt',
+                'gemini', 'claude', 'instagram', 'tiktok', 'netflix', 'spotify',
+                'linkedin', 'twitter', 'x.com', '.com', '.vn', '.org', '.net'
+            ]
+            navigation_words = ['go to', 'goto', 'open website', 'open site', 'browse', 'website', 'site']
+            if any(site in query.lower() for site in common_sites) and (
+                any(word in query.lower() for word in navigation_words)
+                or any(word in query.lower() for word in ['open ', 'launch ', 'start ', 'run '])
+            ):
+                return self.open_website(query)
             
             # Check for website commands (highest priority)
             if any(word in query.lower() for word in ['website', 'site', 'web', 'browse']) and any(word in query.lower() for word in ['open ', 'launch ', 'start ', 'run ']) and any(word in query.lower() for word in ['website', 'site', '.com', '.org', '.net']):
@@ -792,7 +807,7 @@ class NewFeatures:
     #         engine.setProperty('rate', 150)
     #         engine.setProperty('volume', 0.9)
             
-    #         filename = f"speech_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
+    #         filename = f"speech_{vn_now().strftime('%Y%m%d_%H%M%S')}.wav"
     #         engine.save_to_file(text, filename)
     #         engine.runAndWait()
             
@@ -1087,7 +1102,7 @@ class NewFeatures:
             
             img = qr.make_image(fill_color="#0078FF", back_color="white").convert('RGB')
             
-            filename = f"jarvis_qr_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            filename = f"jarvis_qr_{vn_now().strftime('%Y%m%d_%H%M%S')}.png"
             img.save(filename)
             return f"✅ QR Code generated for '{text}': {filename}"
             
@@ -1102,7 +1117,7 @@ class NewFeatures:
             if folder is None:
                 folder = "."
             if output_name is None:
-                output_name = f"archive_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+                output_name = f"archive_{vn_now().strftime('%Y%m%d_%H%M%S')}.zip"
             
             with zipfile.ZipFile(output_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for root, dirs, files in os.walk(folder):
@@ -1153,7 +1168,7 @@ class NewFeatures:
                 if os.path.exists(pdf):
                     merger.append(pdf)
             
-            output_name = f"merged_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+            output_name = f"merged_{vn_now().strftime('%Y%m%d_%H%M%S')}.pdf"
             merger.write(output_name)
             merger.close()
             return f"📄 Merged {len(pdf_files)} PDFs into {output_name}"
@@ -1266,7 +1281,7 @@ class NewFeatures:
                     images.append(img)
             
             if images:
-                output_name = f"images_to_pdf_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                output_name = f"images_to_pdf_{vn_now().strftime('%Y%m%d_%H%M%S')}.pdf"
                 images[0].save(output_name, save_all=True, append_images=images[1:])
                 return f"📄 Created PDF from {len(images)} images: {output_name}"
             else:
@@ -1635,7 +1650,7 @@ class NewFeatures:
                     participants = parts[1].strip()
             
             # Generate meeting details
-            now = datetime.now()
+            now = vn_now()
             suggested_time = now + timedelta(days=1)
             meeting_link = "https://meet.google.com/new"
             
@@ -1697,13 +1712,13 @@ Meeting opened in browser for scheduling."""
                 seconds = 1800
             
             # Calculate reminder time
-            reminder_time = datetime.now() + timedelta(seconds=seconds)
+            reminder_time = vn_now() + timedelta(seconds=seconds)
             
             # Save reminder to JSON
             reminder_data = {
                 "task": task,
                 "reminder_time": reminder_time.isoformat(),
-                "created_at": datetime.now().isoformat(),
+                "created_at": vn_now().isoformat(),
                 "seconds": seconds
             }
             
@@ -1768,7 +1783,7 @@ Meeting opened in browser for scheduling."""
                 reminder_time = datetime.fromisoformat(reminder.get('reminder_time', ''))
                 created_at = datetime.fromisoformat(reminder.get('created_at', ''))
                 
-                now = datetime.now()
+                now = vn_now()
                 if reminder_time > now:
                     time_left = reminder_time - now
                     minutes_left = int(time_left.total_seconds() / 60)
@@ -1970,7 +1985,7 @@ Meeting opened in browser for scheduling."""
                     duration = num
             
             # Generate filename
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = vn_now().strftime('%Y%m%d_%H%M%S')
             filename = f"voice_memo_{timestamp}.wav"
             
             # Immediate response with voice feedback
@@ -2073,7 +2088,7 @@ Meeting opened in browser for scheduling."""
                     duration = num
             
             # Generate filename
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            timestamp = vn_now().strftime('%Y%m%d_%H%M%S')
             filename = f"screen_recording_{timestamp}.mp4"
             
             # Immediate response with voice feedback
@@ -2092,10 +2107,10 @@ Meeting opened in browser for scheduling."""
                     out = cv2.VideoWriter(filename, fourcc, fps, screen_size)
                     
                     # Record screen
-                    start_time = datetime.now()
+                    start_time = vn_now()
                     frames_recorded = 0
                     
-                    while (datetime.now() - start_time).seconds < duration:
+                    while (vn_now() - start_time).seconds < duration:
                         # Capture screenshot
                         img = pyautogui.screenshot()
                         
@@ -2222,7 +2237,7 @@ Convert glasses/cups to ml (1 glass = 250ml, 1 cup = 240ml, 1 liter = 1000ml).''
                         
                         water_data['today'] += hydration_value
                         water_data['history'].append({
-                            'timestamp': datetime.now().isoformat(),
+                            'timestamp': vn_now().isoformat(),
                             'amount': hydration_value,
                             'drink_type': drink_type,
                             'original_amount': amount
@@ -2258,7 +2273,7 @@ Convert glasses/cups to ml (1 glass = 250ml, 1 cup = 240ml, 1 liter = 1000ml).''
                     
                     water_data['today'] += amount
                     water_data['history'].append({
-                        'timestamp': datetime.now().isoformat(),
+                        'timestamp': vn_now().isoformat(),
                         'amount': amount
                     })
                     
@@ -2297,7 +2312,7 @@ Convert glasses/cups to ml (1 glass = 250ml, 1 cup = 240ml, 1 liter = 1000ml).''
                 if water_data['history']:
                     last_drink = water_data['history'][-1]
                     last_time = datetime.fromisoformat(last_drink['timestamp'])
-                    time_ago = datetime.now() - last_time
+                    time_ago = vn_now() - last_time
                     hours_ago = time_ago.total_seconds() / 3600
                     status += f"Last drink: {hours_ago:.1f} hours ago"
                 
@@ -2416,7 +2431,7 @@ Adjust based on user request or use defaults for HIIT.'''
                     
                     # Log workout
                     exercise_data['sessions'].append({
-                        'timestamp': datetime.now().isoformat(),
+                        'timestamp': vn_now().isoformat(),
                         'type': 'HIIT',
                         'duration': total_time,
                         'rounds': rounds,
@@ -2499,7 +2514,7 @@ Estimate realistic calories per serving. Always include all three lines.'''
                         calorie_data['today'] += total_calories
                         
                         calorie_data['foods'].append({
-                            'timestamp': datetime.now().isoformat(),
+                            'timestamp': vn_now().isoformat(),
                             'food': food_name,
                             'quantity': quantity,
                             'calories': total_calories
@@ -2532,7 +2547,7 @@ Estimate realistic calories per serving. Always include all three lines.'''
                             calorie_data['today'] += total_calories
                             
                             calorie_data['foods'].append({
-                                'timestamp': datetime.now().isoformat(),
+                                'timestamp': vn_now().isoformat(),
                                 'food': food,
                                 'quantity': quantity,
                                 'calories': total_calories
@@ -2679,7 +2694,7 @@ Recommend 7-9 hours of sleep for optimal health.'''
                             bedtime_str = current_data['sleep']['bedtime']
                             bedtime_hour, bedtime_min = map(int, bedtime_str.split(':'))
                             
-                            now = datetime.now()
+                            now = vn_now()
                             bedtime_today = now.replace(hour=bedtime_hour, minute=bedtime_min, second=0, microsecond=0)
                             
                             # If bedtime has passed today, set for tomorrow
@@ -2799,14 +2814,14 @@ Rate 1-10 where 1=very calm, 10=extremely stressed.'''
                 
                 if 1 <= stress_level <= 10:
                     stress_data['levels'].append({
-                        'timestamp': datetime.now().isoformat(),
+                        'timestamp': vn_now().isoformat(),
                         'level': stress_level,
                         'cause': cause,
                         'ai_recommendation': ai_recommendation
                     })
                     
                     # AI-enhanced weekly analysis
-                    week_ago = datetime.now() - timedelta(days=7)
+                    week_ago = vn_now() - timedelta(days=7)
                     recent_levels = [
                         entry['level'] for entry in stress_data['levels']
                         if datetime.fromisoformat(entry['timestamp']) > week_ago
@@ -2824,7 +2839,7 @@ Rate 1-10 where 1=very calm, 10=extremely stressed.'''
                     else:
                         trend_msg = ""
                     
-                    stress_data['last_check'] = datetime.now().isoformat()
+                    stress_data['last_check'] = vn_now().isoformat()
                     self._save_health_data(data)
                     
                     # AI-enhanced recommendations
@@ -2864,7 +2879,7 @@ Rate 1-10 where 1=very calm, 10=extremely stressed.'''
                 
                 if stress_data['last_check']:
                     last_time = datetime.fromisoformat(stress_data['last_check'])
-                    hours_ago = (datetime.now() - last_time).total_seconds() / 3600
+                    hours_ago = (vn_now() - last_time).total_seconds() / 3600
                     status += f"Last check: {hours_ago:.1f} hours ago\n"
                 
                 status += "\nRecent levels:\n"
@@ -2969,7 +2984,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                 
                 if 1 <= mood_score <= 10:
                     mood_data['entries'].append({
-                        'timestamp': datetime.now().isoformat(),
+                        'timestamp': vn_now().isoformat(),
                         'score': mood_score,
                         'emotion': emotion,
                         'trigger': trigger,
@@ -2977,7 +2992,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                     })
                     
                     # Calculate weekly average
-                    week_ago = datetime.now() - timedelta(days=7)
+                    week_ago = vn_now() - timedelta(days=7)
                     recent_moods = [
                         entry['score'] for entry in mood_data['entries']
                         if datetime.fromisoformat(entry['timestamp']) > week_ago
@@ -2986,7 +3001,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                     if recent_moods:
                         mood_data['weekly_average'] = sum(recent_moods) / len(recent_moods)
                     
-                    mood_data['last_check'] = datetime.now().isoformat()
+                    mood_data['last_check'] = vn_now().isoformat()
                     self._save_health_data(data)
                     
                     # Mood-based notifications
@@ -3011,7 +3026,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                 
                 if mood_data['last_check']:
                     last_time = datetime.fromisoformat(mood_data['last_check'])
-                    hours_ago = (datetime.now() - last_time).total_seconds() / 3600
+                    hours_ago = (vn_now() - last_time).total_seconds() / 3600
                     status += f"Last check: {hours_ago:.1f} hours ago\n"
                 
                 status += "\nRecent moods:\n"
@@ -3042,7 +3057,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                     
                     if 40 <= heart_rate <= 200:
                         hr_data['readings'].append({
-                            'timestamp': datetime.now().isoformat(),
+                            'timestamp': vn_now().isoformat(),
                             'bpm': heart_rate,
                             'type': 'manual'
                         })
@@ -3053,7 +3068,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                             avg_hr = sum(r['bpm'] for r in recent_readings) / len(recent_readings)
                             hr_data['resting_hr'] = int(avg_hr)
                         
-                        hr_data['last_check'] = datetime.now().isoformat()
+                        hr_data['last_check'] = vn_now().isoformat()
                         self._save_health_data(data)
                         
                         # Heart rate analysis
@@ -3083,7 +3098,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                 
                 if hr_data['last_check']:
                     last_time = datetime.fromisoformat(hr_data['last_check'])
-                    hours_ago = (datetime.now() - last_time).total_seconds() / 3600
+                    hours_ago = (vn_now() - last_time).total_seconds() / 3600
                     status += f"Last reading: {hours_ago:.1f} hours ago\n"
                 
                 status += "\nRecent readings:\n"
@@ -3130,7 +3145,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                     medication = {
                         'name': med_name,
                         'schedule': schedule,
-                        'added': datetime.now().isoformat(),
+                        'added': vn_now().isoformat(),
                         'last_taken': None
                     }
                     
@@ -3144,7 +3159,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                                 if schedule != "daily":
                                     # Parse time
                                     hour, minute = map(int, schedule.split(':'))
-                                    now = datetime.now()
+                                    now = vn_now()
                                     reminder_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
                                     
                                     if now > reminder_time:
@@ -3174,7 +3189,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                     
                     for med in med_data['pills']:
                         if med_name.lower() in med['name'].lower():
-                            med['last_taken'] = datetime.now().isoformat()
+                            med['last_taken'] = vn_now().isoformat()
                             self._save_health_data(data)
                             return f"Marked {med['name']} as taken"
                     
@@ -3195,7 +3210,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
                     
                     if med['last_taken']:
                         last_taken = datetime.fromisoformat(med['last_taken'])
-                        hours_ago = (datetime.now() - last_taken).total_seconds() / 3600
+                        hours_ago = (vn_now() - last_taken).total_seconds() / 3600
                         status += f"   Last taken: {hours_ago:.1f} hours ago\n"
                     else:
                         status += f"   Last taken: Never\n"
@@ -3250,7 +3265,7 @@ Rate 1-10 where 1=very negative, 10=very positive.'''
             
             # Log BMI history
             bmi_data['history'].append({
-                'timestamp': datetime.now().isoformat(),
+                'timestamp': vn_now().isoformat(),
                 'bmi': round(bmi, 1),
                 'weight': weight,
                 'height': bmi_data['height'],
@@ -3814,7 +3829,7 @@ Category: length'''
                     flashcards['decks'][deck_name].append({
                         'question': question,
                         'answer': answer,
-                        'created': datetime.now().isoformat()
+                        'created': vn_now().isoformat()
                     })
                     
                     with open(flashcards_file, 'w') as f:
@@ -4648,6 +4663,12 @@ Make it comprehensive and logical!'''
             else:
                 return "Usage: 'open [app name]' - Example: 'open notepad' or 'open chrome'"
             
+            # If the user says something like "open chrome go to youtube",
+            # this is website navigation, not an app-name lookup.
+            website_markers = ['go to', 'goto', 'youtube', 'google', 'facebook', 'gmail', 'github', 'zalo', 'chatgpt', '.com', '.vn', '.org', '.net']
+            if any(marker in app_name.lower() for marker in website_markers):
+                return self.open_website(query)
+            
             # COMPLETE Windows App Mappings - ALL Available Applications
             app_mappings = {
                 # === MICROSOFT OFFICE SUITE ===
@@ -5453,7 +5474,7 @@ Make it comprehensive and logical!'''
                     pass
             
             # Start scanning
-            start_time = datetime.now()
+            start_time = vn_now()
             threads = []
             
             for port in range(start_port, end_port + 1):
@@ -5471,7 +5492,7 @@ Make it comprehensive and logical!'''
             for thread in threads:
                 thread.join()
             
-            end_time = datetime.now()
+            end_time = vn_now()
             scan_duration = (end_time - start_time).total_seconds()
             
             # Common port services
@@ -5695,7 +5716,7 @@ Make it comprehensive and logical!'''
                 delay_seconds = delay_num
             
             # Schedule the email
-            schedule_time = datetime.now() + timedelta(seconds=delay_seconds)
+            schedule_time = vn_now() + timedelta(seconds=delay_seconds)
             
             def send_scheduled_email():
                 time.sleep(delay_seconds)
@@ -5819,7 +5840,7 @@ Make it comprehensive and logical!'''
                             expenses = []
                         
                         expenses.append({
-                            "date": datetime.now().strftime("%Y-%m-%d"),
+                            "date": vn_now().strftime("%Y-%m-%d"),
                             "amount": amount,
                             "category": category,
                             "description": query
@@ -6381,7 +6402,7 @@ Make it comprehensive and logical!'''
                 
                 # Create health report
                 result = f"Disk Health Scanner:\n"
-                result += f"Scan Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                result += f"Scan Time: {vn_now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
                 
                 # Disk status
                 if disk_info:
@@ -6477,7 +6498,7 @@ Make it comprehensive and logical!'''
                 
                 # Create device report
                 result = f"USB Device Manager:\n"
-                result += f"Scan Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                result += f"Scan Time: {vn_now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
                 
                 # USB Hubs and Controllers
                 if usb_devices:
@@ -6564,7 +6585,7 @@ Make it comprehensive and logical!'''
                     return "[NOTE] Usage: 'quick note [your note]' or 'note meeting at 3pm'"
                 
                 # Create timestamped note
-                timestamp = datetime.now()
+                timestamp = vn_now()
                 note_entry = {
                     'id': len(notes) + 1,
                     'text': note_text,
@@ -6683,7 +6704,7 @@ Make it comprehensive and logical!'''
             large_files.sort(key=lambda x: x['size'], reverse=True)
             
             result = f"Large File Scanner - {scan_path}\n"
-            result += f"Scan Time: {datetime.now().strftime('%H:%M:%S')}\n\n"
+            result += f"Scan Time: {vn_now().strftime('%H:%M:%S')}\n\n"
             
             if large_files:
                 result += f"Found {len(large_files)} files >100MB:\n"
@@ -6736,7 +6757,7 @@ Make it comprehensive and logical!'''
                                 file_path = os.path.join(root, file)
                                 try:
                                     size = os.path.getsize(file_path)
-                                    modified = datetime.fromtimestamp(os.path.getmtime(file_path))
+                                    modified = vn_fromtimestamp(os.path.getmtime(file_path))
                                     
                                     found_files.append({
                                         'name': file,
@@ -6815,7 +6836,7 @@ Make it comprehensive and logical!'''
             ]
             
             current_files = []
-            cutoff_time = datetime.now() - timedelta(days=7)
+            cutoff_time = vn_now() - timedelta(days=7)
             
             for scan_path in scan_paths:
                 if not os.path.exists(scan_path):
@@ -6829,7 +6850,7 @@ Make it comprehensive and logical!'''
                         for file in files:
                             try:
                                 file_path = os.path.join(root, file)
-                                modified_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                                modified_time = vn_fromtimestamp(os.path.getmtime(file_path))
                                 
                                 if modified_time > cutoff_time:
                                     current_files.append({
@@ -6870,7 +6891,7 @@ Make it comprehensive and logical!'''
                     return f"Failed to open file: {e}"
             
             result = f"Recent Files (Last 7 days) - Showing {min(show_count, len(recent_files))}\n"
-            result += f"Updated: {datetime.now().strftime('%H:%M:%S')}\n\n"
+            result += f"Updated: {vn_now().strftime('%H:%M:%S')}\n\n"
             
             if recent_files:
                 for i, file in enumerate(recent_files[:show_count], 1):
@@ -6923,7 +6944,7 @@ Make it comprehensive and logical!'''
                                     apps.append({
                                         'name': name,
                                         'date': install_date.strftime('%Y-%m-%d'),
-                                        'days_ago': (datetime.now() - install_date).days
+                                        'days_ago': (vn_now() - install_date).days
                                     })
                             except:
                                 continue
@@ -6932,7 +6953,7 @@ Make it comprehensive and logical!'''
             apps.sort(key=lambda x: x['date'], reverse=True)
             
             output = f"Recently Installed Apps - Showing {min(show_count, len(apps))}\n"
-            output += f"Updated: {datetime.now().strftime('%H:%M:%S')}\n\n"
+            output += f"Updated: {vn_now().strftime('%H:%M:%S')}\n\n"
             
             if apps:
                 for i, app in enumerate(apps[:show_count], 1):
@@ -6955,6 +6976,23 @@ Make it comprehensive and logical!'''
         try:
             import webbrowser
             import re
+            import subprocess
+            import os
+            
+            def open_url(url):
+                """Open URL reliably on Windows.
+
+                Chrome may show the profile picker if it starts without a target
+                profile. Passing --profile-directory=Default helps commands like
+                'open chrome go to youtube' go straight to the website.
+                """
+                try:
+                    if os.name == 'nt':
+                        subprocess.Popen(f'cmd /c start "" chrome --profile-directory="Default" --new-window "{url}"', shell=True)
+                    else:
+                        webbrowser.open(url)
+                except Exception:
+                    webbrowser.open(url)
             
             # Comprehensive website mappings
             website_mappings = {
@@ -7121,31 +7159,46 @@ Make it comprehensive and logical!'''
             website_name = ""
             query_lower = query.lower().strip()
             
+            # Normalize browser-navigation wording.
+            # Examples:
+            #   "open chrome go to youtube" -> "youtube"
+            #   "open browser goto github" -> "github"
+            #   "go to youtube" -> "youtube"
+            query_lower = query_lower.replace('goto ', 'go to ')
+            for marker in [' go to ', ' go to']:
+                if marker.strip() in query_lower and any(browser in query_lower for browser in ['chrome', 'browser', 'edge', 'firefox']):
+                    query_lower = query_lower.split('go to', 1)[1].strip()
+                    break
+            
             # Remove common prefixes
             for prefix in ['open ', 'launch ', 'start ', 'run ', 'website ', 'site ', 'web ', 'browse ', 'go to ']:
                 if query_lower.startswith(prefix):
                     query_lower = query_lower[len(prefix):].strip()
                     break
+            if query_lower.startswith(('chrome ', 'browser ', 'edge ', 'firefox ')):
+                query_lower = re.sub(r'^(chrome|browser|edge|firefox)\s+', '', query_lower).strip()
+                if query_lower.startswith('go to '):
+                    query_lower = query_lower[6:].strip()
             
             # Check if it's already a URL
             if any(protocol in query_lower for protocol in ['http://', 'https://', 'www.']):
                 url = query_lower
                 if not url.startswith(('http://', 'https://')):
                     url = 'https://' + url
-                webbrowser.open(url)
+                open_url(url)
                 return f"🌐 Opened website: {url}"
             
             # Check direct mappings first
             website_name = query_lower
             if website_name in website_mappings:
                 url = website_mappings[website_name]
-                webbrowser.open(url)
+                open_url(url)
                 return f"🌐 Opened {website_name.title()}: {url}"
             
             # Check partial matches
             for site, url in website_mappings.items():
                 if site in query_lower or query_lower in site:
-                    webbrowser.open(url)
+                    open_url(url)
                     return f"🌐 Opened {site.title()}: {url}"
             
             # AI fallback for unknown websites
@@ -7188,13 +7241,13 @@ If unsure, provide the most likely official website URL.'''
                     url = url_match.group(1).strip()
                     name = name_match.group(1).strip() if name_match else query
                     
-                    webbrowser.open(url)
+                    open_url(url)
                     return f"🌐 AI found and opened {name}: {url}"
                 else:
                     # Fallback: construct likely URL
                     clean_name = re.sub(r'[^a-zA-Z0-9]', '', query_lower)
                     fallback_url = f"https://www.{clean_name}.com"
-                    webbrowser.open(fallback_url)
+                    open_url(fallback_url)
                     return f"🌐 Opened best guess: {fallback_url}"
                     
             except Exception as ai_error:
@@ -7203,7 +7256,7 @@ If unsure, provide the most likely official website URL.'''
                 # Final fallback: Google search
                 search_query = query.replace(' ', '+')
                 google_search = f"https://www.google.com/search?q={search_query}+official+website"
-                webbrowser.open(google_search)
+                open_url(google_search)
                 return f"🌐 Opened Google search for '{query}' official website"
                 
         except Exception as e:

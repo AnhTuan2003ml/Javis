@@ -20,6 +20,7 @@ import zipfile
 import re
 import warnings
 import re, subprocess, urllib.parse
+from core.utils.vietnam_time import vn_now, vn_fromtimestamp
 warnings.filterwarnings("ignore")
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -42,7 +43,7 @@ class DualAI:
             with open('data/state/alarm.json', 'r') as f:
                 data = json.load(f)
                 saved_time = datetime.fromisoformat(data['time'])
-                if saved_time > datetime.now():
+                if saved_time > vn_now():
                     self.active_alarm = saved_time
                     self._start_alarm_thread(saved_time)
         except:
@@ -87,20 +88,20 @@ class DualAI:
             'steam': lambda: subprocess.Popen('start steam', shell=True),
             
             # Websites
-            'google': lambda: subprocess.Popen('start chrome https://www.google.com', shell=True),
-            'youtube': lambda: subprocess.Popen('start chrome https://www.youtube.com', shell=True),
-            'wikipedia': lambda: subprocess.Popen('start chrome https://www.wikipedia.org', shell=True),
-            'stackoverflow': lambda: subprocess.Popen('start chrome https://stackoverflow.com', shell=True),
-            'github': lambda: subprocess.Popen('start chrome https://github.com', shell=True),
-            'amazon': lambda: subprocess.Popen('start chrome https://www.amazon.in', shell=True),
-            'flipkart': lambda: subprocess.Popen('start chrome https://www.flipkart.com', shell=True),
-            'instagram': lambda: subprocess.Popen('start chrome https://www.instagram.com', shell=True),
-            'facebook': lambda: subprocess.Popen('start chrome https://www.facebook.com', shell=True),
-            'twitter': lambda: subprocess.Popen('start chrome https://www.twitter.com', shell=True),
-            'linkedin': lambda: subprocess.Popen('start chrome https://www.linkedin.com', shell=True),
-            'whatsapp_web': lambda: subprocess.Popen('start chrome https://web.whatsapp.com', shell=True),
-            'gmail': lambda: subprocess.Popen('start chrome https://mail.google.com', shell=True),
-            'netflix': lambda: subprocess.Popen('start chrome https://www.netflix.com', shell=True),
+            'google': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.google.com"', shell=True),
+            'youtube': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.youtube.com"', shell=True),
+            'wikipedia': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.wikipedia.org"', shell=True),
+            'stackoverflow': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://stackoverflow.com"', shell=True),
+            'github': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://github.com"', shell=True),
+            'amazon': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.amazon.in"', shell=True),
+            'flipkart': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.flipkart.com"', shell=True),
+            'instagram': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.instagram.com"', shell=True),
+            'facebook': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.facebook.com"', shell=True),
+            'twitter': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.twitter.com"', shell=True),
+            'linkedin': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.linkedin.com"', shell=True),
+            'whatsapp_web': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://web.whatsapp.com"', shell=True),
+            'gmail': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://mail.google.com"', shell=True),
+            'netflix': lambda: subprocess.Popen('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.netflix.com"', shell=True),
             
             # Volume
             'volume_up': lambda: pyautogui.press('volumeup'),
@@ -108,7 +109,7 @@ class DualAI:
             'mute': lambda: pyautogui.press('volumemute'),
             
             # Screen
-            'screenshot': lambda: pyautogui.screenshot().save(f'screenshot_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png'),
+            'screenshot': lambda: pyautogui.screenshot().save(f'screenshot_{vn_now().strftime("%Y%m%d_%H%M%S")}.png'),
             'show desktop': lambda: pyautogui.hotkey('win', 'd'),
             'minimize_all': lambda: pyautogui.hotkey('win', 'm'),
             'brightness_up': self._brightness_up,
@@ -165,12 +166,13 @@ class DualAI:
             'cpu': lambda: psutil.cpu_percent(interval=1),
             'memory': lambda: psutil.virtual_memory().percent,
             'battery': lambda: psutil.sensors_battery().percent if psutil.sensors_battery() else None,
-            'time': lambda: datetime.now().strftime('%I:%M %p'),
-            'date': lambda: datetime.now().strftime('%A, %B %d, %Y'),
+            'time': lambda: vn_now().strftime('%I:%M %p'),
+            'date': lambda: vn_now().strftime('%A, %B %d, %Y'),
             
             # AI Control
             'switch_to_gemini': self._switch_to_gemini,
             'switch_to_groq': self._switch_to_groq,
+            'switch_to_ollama': self._switch_to_ollama,
             'current_ai': self._get_current_ai,
             'switch_language_hindi': self._switch_to_hindi,
             'switch_language_kannada': self._switch_to_kannada,
@@ -691,9 +693,15 @@ class DualAI:
                 self.ai_provider = 'gemini'
                 self._init_gemini()
 
+        elif self.ai_provider == 'ollama':
+            # Ollama is initialized below after config load.
+            pass
         else:
             self._init_gemini()
         
+        # Initialize Ollama LAN model fallback/primary.
+        self._init_ollama()
+
         # Initialize GPT4All as final fallback
         self._init_gpt4all()
     
@@ -723,13 +731,37 @@ class DualAI:
     def _init_gemini(self):
         try:
             import google.generativeai as genai
-            from core.ai.gemini_config import GEMINI_API_KEY
+            from core.ai.gemini_config import GEMINI_API_KEY, GEMINI_MODEL_NAME
             genai.configure(api_key=GEMINI_API_KEY)
-            self.gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-            print("Using Gemini AI")
+            self.gemini_model = genai.GenerativeModel(GEMINI_MODEL_NAME)
+            print(f"Using Gemini AI ({GEMINI_MODEL_NAME})")
         except Exception as e:
             print(f"AI init error: {e}")
     
+    def _init_ollama(self):
+        """Initialize remote/local Ollama model as a quota-free AI backend."""
+        try:
+            from core.ai.ollama_client import ollama_client
+            self.ollama_client = ollama_client
+            if self.ollama_client.is_available():
+                print(f"Using Ollama local AI ({self.ollama_client.model}) at {self.ollama_client.base_url}")
+            else:
+                print(f"Ollama not reachable at {self.ollama_client.base_url}; will skip local fallback")
+        except Exception as e:
+            print(f"Ollama init error: {e}")
+            self.ollama_client = None
+
+    def _get_ollama_response(self, prompt, max_tokens=256):
+        """Return a response from Ollama or None if unavailable."""
+        try:
+            if not hasattr(self, 'ollama_client') or self.ollama_client is None:
+                self._init_ollama()
+            if self.ollama_client:
+                return self.ollama_client.generate(prompt, max_tokens=max_tokens)
+        except Exception as e:
+            print(f"Ollama fallback failed: {e}")
+        return None
+
     def _init_gpt4all(self):
         """Initialize GPT4All as final fallback"""
         try:
@@ -772,6 +804,23 @@ class DualAI:
             
             # Handle timer/stopwatch commands - ABSOLUTE HIGHEST PRIORITY
             query_lower = query.lower().strip()
+
+            # AI Tool Router -> Permission Guard -> MCP/local executor.
+            # This fixes commands like "search information about AI" and
+            # "open Billie Jean in YouTube" before legacy keyword matching.
+            try:
+                from core.ai.tool_router import tool_router
+                from core.security.permission_guard import permission_guard
+
+                tool_call = tool_router.route(query, ai_generate=self.get_ai_response)
+                if tool_call:
+                    print(f"AI tool router result: {tool_call}")
+                    tool_result = permission_guard.execute_tool_call(tool_call)
+                    if tool_result:
+                        return tool_result
+            except Exception as router_error:
+                print(f"AI tool router skipped: {router_error}")
+
             if 'stopwatch' in query_lower:
                 if 'start' in query_lower:
                     return self._start_stopwatch()
@@ -1435,6 +1484,15 @@ RESPONSE:'''
 
             # Check dual_ai functions first
             if func_name and func_name in self.functions:
+                try:
+                    from core.security.permission_guard import permission_guard
+                    legacy_policy = permission_guard.check_legacy_function(func_name)
+                    if legacy_policy == 'blocked':
+                        return permission_guard.block_message(func_name)
+                    if legacy_policy == 'confirm':
+                        return permission_guard.confirm_message(func_name)
+                except Exception as guard_error:
+                    print(f"Permission guard skipped for {func_name}: {guard_error}")
                 print(f"Executing dual_ai function: {func_name}")
                 result = self.functions[func_name]()
                 # For advanced features, return the actual result
@@ -1448,6 +1506,15 @@ RESPONSE:'''
                 try:
                     from core.ai.new_features import _new_features_instance
                     if _new_features_instance and func_name in _new_features_instance.features:
+                        try:
+                            from core.security.permission_guard import permission_guard
+                            legacy_policy = permission_guard.check_legacy_function(func_name)
+                            if legacy_policy == 'blocked':
+                                return permission_guard.block_message(func_name)
+                            if legacy_policy == 'confirm':
+                                return permission_guard.confirm_message(func_name)
+                        except Exception as guard_error:
+                            print(f"Permission guard skipped for {func_name}: {guard_error}")
                         # Execute new features function with query parameter if needed
                         query_functions = ['weather_forecast', 'email_templates', 'meeting_scheduler', 'task_reminder', 'list_reminders', 'image_editor', 'audio_converter', 'video_downloader', 'voice_recorder', 'screen_recorder', 'water_reminder', 'exercise_timer', 'calorie_calculator', 'sleep_tracker', 'stress_meter', 'mood_tracker', 'heart_rate_monitor', 'medication_reminder', 'bmi_calculator', 'system_monitor', 'network_monitor', 'language_translator', 'dictionary_lookup', 'wikipedia_search', 'calculator_advanced', 'unit_converter', 'flashcard_system', 'quiz_generator', 'meme_generator', 'logo_generator', 'color_palette_generator', 'font_viewer', 'ascii_art_generator', 'barcode_generator', 'mind_map_creator', 'password_manager', 'startup_manager', 'git_helper', 'port_scanner', 'email_sender', 'financial_tools', 'speed_test', 'battery_health', 'thermal_monitor', 'quick_note_taker', 'large_file_scanner', 'file_search_engine', 'recent_files_tracker', 'open_app', 'close_app', 'open_website', 'close_website']
                         
@@ -1559,7 +1626,7 @@ RESPONSE:'''
             'taskmanager': ['task manager', 'processes', 'taskmanager'],
             'cmd': ['command prompt', 'cmd', 'terminal'],
             'paint': ['paint', 'drawing', 'mspaint'],
-            'google': ['google', 'search', 'google search'],
+            'google': ['google', 'open google', 'google search'],
             'youtube': ['youtube', 'videos', 'watch videos'],
             'wikipedia': ['wikipedia', 'wiki', 'encyclopedia'],
             'stackoverflow': ['stackoverflow', 'programming help', 'coding help'],
@@ -1589,6 +1656,7 @@ RESPONSE:'''
             'pictures': ['pictures', 'photos', 'image folder'],
             'switch_to_gemini': ['switch to gemini', 'use gemini', 'gemini ai'],
             'switch_to_groq': ['switch to groq', 'use groq', 'groq ai'],
+            'switch_to_ollama': ['switch to ollama', 'use ollama', 'local ai', 'use local model', 'switch to local model'],
             'current_ai': ['current ai', 'which ai', 'ai status'],
             'switch_language_hindi': ['hindi', 'switch to hindi'],
             'switch_language_kannada': ['kannada', 'switch to kannada'],
@@ -2054,43 +2122,70 @@ RESPONSE:'''
         return any(word in query.lower() for word in question_words) or query.strip().endswith('?')
     
     def get_ai_response(self, prompt):
-        """Get AI response for function mapping with fallback mechanism"""
+        """Get AI response for function mapping with fallback mechanism.
+
+        Priority:
+        - If provider is ollama: use the LAN Ollama model directly.
+        - If provider is groq/gemini: try cloud first, then fall back to Ollama
+          when quota/rate/API errors happen.
+        - GPT4All remains the last optional fallback elsewhere.
+        """
         try:
+            if self.ai_provider == 'ollama':
+                local_response = self._get_ollama_response(prompt, max_tokens=256)
+                if local_response:
+                    return local_response
+                return None
+
             if self.ai_provider == 'groq':
                 # Get appropriate model based on token usage
                 model = self._get_groq_model()
-                
+
                 response = self.groq_client.chat.completions.create(
                     messages=[{"role": "user", "content": prompt}],
                     model=model,
-                    max_tokens=50
+                    max_tokens=80
                 )
-                
+
                 # Track token usage (approximate)
                 self.token_count += len(prompt.split()) + len(response.choices[0].message.content.split())
-                
+
                 return response.choices[0].message.content.strip()
             else:
                 response = self.gemini_model.generate_content(prompt)
                 return response.text.strip()
-                
+
         except Exception as e:
             print(f"AI response error: {e}")
-            # If 8B model fails due to rate limit, try 70B model
+
+            # If Groq 8B fails due to rate limit, try 70B model before local fallback.
             if self.ai_provider == 'groq' and 'rate limit' in str(e).lower():
                 try:
                     print("Trying fallback to 70B model...")
                     response = self.groq_client.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
                         model=self.fallback_model,
-                        max_tokens=50
+                        max_tokens=80
                     )
                     return response.choices[0].message.content.strip()
-                except:
-                    pass
+                except Exception as groq_fallback_error:
+                    print(f"Groq fallback failed: {groq_fallback_error}")
+
+            # Gemini/Groq quota fallback: use Ollama on 192.168.1.12.
+            local_response = self._get_ollama_response(prompt, max_tokens=120)
+            if local_response:
+                print("Using Ollama fallback response")
+                return local_response
+
             return None
     
     def _answer_question(self, query):
+        prompt = (
+            "You are Jarvis, a concise voice assistant. "
+            "Answer directly in one or two short sentences. "
+            "Do not include reasoning, analysis, or <think> tags.\n\n"
+            f'Question: "{query}"\nFinal answer only:'
+        )
         try:
             # Check stored memories first for any personal questions
             if any(word in query.lower() for word in ['my ', 'what is my', 'who am i', 'do you remember', 'what do you know about me']):
@@ -2126,7 +2221,11 @@ RESPONSE:'''
                 except:
                     pass
             
-            prompt = f'You are Jarvis. Answer briefly: "{query}"'
+            if self.ai_provider == 'ollama':
+                local_response = self._get_ollama_response(prompt, max_tokens=120)
+                if local_response:
+                    return local_response
+                return "I'm having trouble answering that with Ollama."
             
             if self.ai_provider == 'groq':
                 # Get appropriate model based on token usage
@@ -2161,6 +2260,10 @@ RESPONSE:'''
                 response = self.gemini_model.generate_content(prompt)
                 return response.text.strip()
         except:
+            local_response = self._get_ollama_response(prompt, max_tokens=256)
+            if local_response:
+                print("Using Ollama fallback response")
+                return local_response
             return "I'm having trouble answering that."
     
     def _get_response(self, func, result):
@@ -2232,6 +2335,7 @@ RESPONSE:'''
             'date': f"Today is {result}",
             'switch_to_gemini': "Switched to Gemini AI.",
             'switch_to_groq': "Switched to Groq AI.",
+            'switch_to_ollama': "Switched to Ollama local AI.",
             'current_ai': f"Currently using {self.ai_provider.title()} AI.",
             'enable_face_auth': "Face recognition enabled.",
             'disable_face_auth': "Face recognition disabled.",
@@ -2424,6 +2528,9 @@ RESPONSE:'''
     
     def _switch_to_groq(self):
         return "groq" if self._set_ai_provider('groq') else "error"
+
+    def _switch_to_ollama(self):
+        return "ollama" if self._set_ai_provider('ollama') else "error"
     
     def _get_current_ai(self):
         return self.ai_provider
@@ -3691,7 +3798,7 @@ RESPONSE:'''
     def _backup_files(self):
         try:
             desktop = os.path.join(os.path.expanduser("~"), "Desktop")
-            backup_folder = os.path.join(desktop, f"Backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+            backup_folder = os.path.join(desktop, f"Backup_{vn_now().strftime('%Y%m%d_%H%M%S')}")
             documents = os.path.join(os.path.expanduser("~"), "Documents")
             os.makedirs(backup_folder, exist_ok=True)
             for file in os.listdir(documents)[:5]:
@@ -4083,7 +4190,7 @@ RESPONSE:'''
     def _search_and_play_simple(self, search_term):
         try:
             # Simple direct approach - open YouTube and search
-            subprocess.run('start chrome https://www.youtube.com', shell=True)
+            subprocess.run('cmd /c start "" chrome --profile-directory="Default" --new-window "https://www.youtube.com"', shell=True)
             time.sleep(3)
             
             # Click search box
@@ -5484,7 +5591,7 @@ Max 2 lines each.'''
             
             # Create backup
             import datetime
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = vn_now().strftime("%Y%m%d_%H%M%S")
             backup_path = f"{file_path}.backup_{timestamp}"
             
             with open(backup_path, 'w', encoding='utf-8') as f:
@@ -5535,7 +5642,7 @@ Max 2 lines each.'''
                 corrected_code = '\n'.join(lines[1:-1])
             
             # Create backup
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = vn_now().strftime("%Y%m%d_%H%M%S")
             backup_path = f"{file_path}.backup_{timestamp}"
             
             with open(backup_path, 'w', encoding='utf-8') as f:
@@ -5801,7 +5908,7 @@ Max 2 lines each.'''
                 document_content.append(current_text.strip())
             
             if document_content:
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                timestamp = vn_now().strftime('%Y%m%d_%H%M%S')
                 
                 if doc_type == "email":
                     filename = f"email_draft_{timestamp}.txt"
@@ -5937,7 +6044,7 @@ Max 2 lines each.'''
                 document_content.append(current_text.strip())
             
             if document_content:
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                timestamp = vn_now().strftime('%Y%m%d_%H%M%S')
                 
                 if doc_type == "email":
                     filename = f"email_draft_{timestamp}.txt"
@@ -6175,7 +6282,7 @@ Max 2 lines each.'''
             # Only save if we opened notepad or word
             if hasattr(self, 'current_app') and self.current_app in ['notepad', 'word']:
                 from datetime import datetime
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                timestamp = vn_now().strftime("%Y%m%d_%H%M%S")
                 
                 if self.current_app == 'word':
                     filename = f"dictation_{timestamp}"
@@ -6501,7 +6608,7 @@ Max 2 lines each.'''
             backup_dir = self._get_directory(query) if 'in ' in query else os.path.dirname(folder_path)
             
             # Create backup with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = vn_now().strftime("%Y%m%d_%H%M%S")
             backup_name = f"{os.path.basename(folder_path)}_backup_{timestamp}"
             backup_path = os.path.join(backup_dir, backup_name)
             
@@ -6868,7 +6975,7 @@ Max 2 lines each.'''
 
     def _get_weekday(self):
         try:
-            return datetime.now().strftime('%A')
+            return vn_now().strftime('%A')
         except:
             return "Could not get weekday"
     
@@ -6918,7 +7025,7 @@ Max 2 lines each.'''
     
     def _get_holidays(self, country="IN"):
         try:
-            year = datetime.now().year
+            year = vn_now().year
             url = f"https://date.nager.at/api/v3/PublicHolidays/{year}/{country}"
             response = requests.get(url, timeout=5)
             
@@ -6939,8 +7046,8 @@ Max 2 lines each.'''
             if not holidays or not isinstance(holidays, list):
                 return self._get_simple_holidays()
             
-            today = datetime.now().strftime("%Y-%m-%d")
-            tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+            today = vn_now().strftime("%Y-%m-%d")
+            tomorrow = (vn_now() + timedelta(days=1)).strftime("%Y-%m-%d")
             
             for holiday in holidays:
                 if holiday.get('date') == today:
@@ -6954,7 +7061,7 @@ Max 2 lines each.'''
                 if holiday.get('date'):
                     try:
                         holiday_date = datetime.strptime(holiday['date'], "%Y-%m-%d")
-                        if holiday_date > datetime.now():
+                        if holiday_date > vn_now():
                             upcoming = holiday
                             break
                     except ValueError:
@@ -6962,7 +7069,7 @@ Max 2 lines each.'''
             
             if upcoming:
                 try:
-                    days_until = (datetime.strptime(upcoming['date'], "%Y-%m-%d") - datetime.now()).days
+                    days_until = (datetime.strptime(upcoming['date'], "%Y-%m-%d") - vn_now()).days
                     return f"Next holiday: {upcoming.get('localName', 'Holiday')} in {days_until} days ({upcoming['date']})."
                 except ValueError:
                     return "Found upcoming holidays but couldn't calculate dates"
@@ -6976,7 +7083,7 @@ Max 2 lines each.'''
     def _get_simple_holidays(self):
         """Fallback method for when API fails"""
         try:
-            today = datetime.now()
+            today = vn_now()
             month = today.month
             day = today.day
             year = today.year
@@ -7298,7 +7405,7 @@ Max 2 lines each.'''
     
     def _get_weekday(self):
         try:
-            return datetime.now().strftime('%A')
+            return vn_now().strftime('%A')
         except:
             return "Could not get weekday"
     
@@ -7848,7 +7955,7 @@ Max 2 lines each.'''
                     hour = 0
             
             # Calculate alarm time
-            now = datetime.now()
+            now = vn_now()
             alarm_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
             
             # Only set for tomorrow if time has already passed today
@@ -7894,7 +8001,7 @@ Max 2 lines each.'''
         from datetime import datetime
         
         def alarm_thread():
-            while datetime.now() < alarm_time:
+            while vn_now() < alarm_time:
                 if not self.active_alarm:
                     return
                 time.sleep(1)
@@ -7956,7 +8063,7 @@ Max 2 lines each.'''
                 except ValueError as ve:
                     return f"Invalid date: {day}/{month}/{year}. {str(ve)}"
                 
-                today = datetime.now()
+                today = vn_now()
                 
                 # Check if birth date is in the future
                 if birth_date > today:
@@ -8030,7 +8137,7 @@ Max 2 lines each.'''
             for i, file in enumerate(files[:5]):
                 file_path = os.path.join(target_dir, file)
                 if sort_by == 'date':
-                    mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                    mod_time = vn_fromtimestamp(os.path.getmtime(file_path))
                     result += f"{i+1}. {file} ({mod_time.strftime('%Y-%m-%d %H:%M')})\n"
                 elif sort_by == 'size':
                     size = os.path.getsize(file_path)
@@ -8196,7 +8303,7 @@ Code:"""
                 # Clean description for filename
                 clean_desc = re.sub(r'[^a-zA-Z0-9_\s]', '', description)
                 clean_desc = clean_desc.replace(' ', '_')[:20]
-                filename = f"ai_code_{clean_desc}_{datetime.now().strftime('%H%M%S')}{ext}"
+                filename = f"ai_code_{clean_desc}_{vn_now().strftime('%H%M%S')}{ext}"
                 file_path = os.path.join(os.path.expanduser("~"), "Desktop", filename)
                 
                 with open(file_path, 'w', encoding='utf-8') as f:

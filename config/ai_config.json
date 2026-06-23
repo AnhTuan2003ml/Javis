@@ -1,1 +1,3 @@
-{"ai_provider": "gemini"}
+{
+  "ai_provider": "ollama"
+}

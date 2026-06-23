@@ -12,6 +12,7 @@ import json
 from datetime import datetime, timedelta
 from collections import Counter
 import psutil
+from core.utils.vietnam_time import vn_now
 
 class UltimateAIExecutor:
     def __init__(self):
@@ -165,7 +166,7 @@ COMMAND:
 import os, time, pyautogui, datetime
 os.system('start notepad')
 time.sleep(3)
-current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+current_time = vn_now().strftime('%Y-%m-%d %H:%M:%S')
 pyautogui.typewrite(f'Current Time:')
 pyautogui.press('enter')
 
@@ -730,7 +731,7 @@ Now generate the proper output for this command:
     def success_failure_tracker(self, command, method, success, context=""):
         conn = sqlite3.connect(self.learning_db)
         conn.execute('INSERT INTO command_history VALUES (NULL, ?, ?, ?, ?, ?)',
-                    (command, method, success, datetime.now().isoformat(), context))
+                    (command, method, success, vn_now().isoformat(), context))
         conn.commit()
         conn.close()
     
@@ -747,10 +748,10 @@ Now generate the proper output for this command:
         result = cursor.fetchone()
         if result:
             conn.execute('UPDATE user_patterns SET frequency=?, last_used=? WHERE pattern=?',
-                        (result[0] + 1, datetime.now().isoformat(), command))
+                        (result[0] + 1, vn_now().isoformat(), command))
         else:
             conn.execute('INSERT INTO user_patterns VALUES (NULL, ?, 1, ?, "")',
-                        (command, datetime.now().isoformat()))
+                        (command, vn_now().isoformat()))
         conn.commit()
         conn.close()
     
