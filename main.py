@@ -10,10 +10,10 @@ import warnings
 warnings.filterwarnings("ignore")
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-from engine.features import *
-from engine.command import *
-from engine.auth import recoganize
-from engine.system_monitor import getSystemStats
+from core.commands.features import *
+from core.commands.command import *
+from core.auth import recoganize
+from core.system.system_monitor import getSystemStats
 import json
 
 # Fingerprint authentication using ADB
@@ -24,7 +24,7 @@ import os
 import time
 
 def AuthenticateFingerprint():
-    data_file = 'engine/auth/fingerprint_data.json'
+    data_file = 'core/auth/fingerprint_data.json'
     
     # No data storage needed
     
@@ -83,7 +83,7 @@ def AuthenticateFingerprint():
     else:
         print("Phone not unlocked - Authentication failed")
         return False
-from engine.voice_advanced_ai import voice_advanced_ai
+from core.voice.voice_advanced_ai import voice_advanced_ai
 
 def get_context_aware_greeting(user_id=None):
     """Generate context-aware greeting with user name"""
@@ -105,7 +105,7 @@ def get_context_aware_greeting(user_id=None):
     name = "Sir"
     if user_id:
         try:
-            with open('users.json', 'r') as f:
+            with open('data/state/users.json', 'r') as f:
                 users = json.load(f)
                 name = users.get(str(user_id), "Sir")
         except:
@@ -129,13 +129,13 @@ def start():
     
     def get_biometric_config():
         try:
-            with open('biometric_config.json', 'r') as f:
+            with open('config/biometric_config.json', 'r') as f:
                 return json.load(f)
         except:
             return {"face_auth_enabled": False, "fingerprint_auth_enabled": True}
     
     def save_biometric_config(config):
-        with open('biometric_config.json', 'w') as f:
+        with open('config/biometric_config.json', 'w') as f:
             json.dump(config, f)
     
     @eel.expose
@@ -182,11 +182,11 @@ def start():
     def setVoiceGender(gender):
         try:
             # Update voice config file
-            with open('voice_config.json', 'w') as f:
+            with open('config/voice_config.json', 'w') as f:
                 json.dump({"gender": gender}, f)
             
             # Reload voice control system
-            from engine.voice_gender_control import voice_control
+            from core.voice.voice_gender_control import voice_control
             voice_control.load_config()
             
             # Test the voice change
@@ -199,7 +199,7 @@ def start():
     @eel.expose
     def getVoiceGender():
         try:
-            with open('voice_config.json', 'r') as f:
+            with open('config/voice_config.json', 'r') as f:
                 config = json.load(f)
                 gender = config.get('gender', 'male')
                 return gender.capitalize()
@@ -210,11 +210,11 @@ def start():
     def setLanguage(language):
         try:
             # Update multilingual system
-            from engine.multilingual_support import multilingual
+            from core.voice.multilingual_support import multilingual
             multilingual.current_language = language.lower()
             
             # Also update the text file for compatibility
-            with open('current_language.txt', 'w') as f:
+            with open('config/current_language.txt', 'w') as f:
                 f.write(language.lower())
             return f"Language set to {language}"
         except Exception as e:
@@ -224,13 +224,13 @@ def start():
     def getCurrentLanguage():
         try:
             # Get from multilingual system first
-            from engine.multilingual_support import multilingual
+            from core.voice.multilingual_support import multilingual
             current = multilingual.current_language
             return current.capitalize()
         except:
             # Fallback to file
             try:
-                with open('current_language.txt', 'r') as f:
+                with open('config/current_language.txt', 'r') as f:
                     language = f.read().strip()
                     return language.capitalize()
             except:
@@ -238,13 +238,13 @@ def start():
     
     def get_ui_config():
         try:
-            with open('ui_config.json', 'r') as f:
+            with open('config/ui_config.json', 'r') as f:
                 return json.load(f)
         except:
             return {"voice_speed": "normal", "voice_volume": "medium", "auto_start": "disabled", "phone_notifications": "disabled"}
     
     def save_ui_config(config):
-        with open('ui_config.json', 'w') as f:
+        with open('config/ui_config.json', 'w') as f:
             json.dump(config, f)
     
     @eel.expose
@@ -255,7 +255,7 @@ def start():
             save_ui_config(config)
             
             # Test the new speed immediately
-            from engine.voice_gender_control import voice_control
+            from core.voice.voice_gender_control import voice_control
             voice_control.speak_with_gender(f"Voice speed changed to {speed}")
             
             return f"Voice speed set to {speed}"
@@ -270,7 +270,7 @@ def start():
             save_ui_config(config)
             
             # Test the new volume immediately
-            from engine.voice_gender_control import voice_control
+            from core.voice.voice_gender_control import voice_control
             voice_control.speak_with_gender(f"Voice volume changed to {volume}")
             
             return f"Voice volume set to {volume}"
@@ -327,7 +327,7 @@ def start():
     @eel.expose
     def enablePhoneNotifications():
         try:
-            from engine.phone_notifications import phone_monitor
+            from core.phone.phone_notifications import phone_monitor
             if not phone_monitor.monitoring:
                 phone_monitor.start_monitoring()
             config = get_ui_config()
@@ -340,7 +340,7 @@ def start():
     @eel.expose
     def disablePhoneNotifications():
         try:
-            from engine.phone_notifications import phone_monitor
+            from core.phone.phone_notifications import phone_monitor
             phone_monitor.stop_monitoring()
             config = get_ui_config()
             config['phone_notifications'] = 'disabled'
@@ -361,7 +361,7 @@ def start():
     @eel.expose
     def enableSmsReading():
         try:
-            from engine.phone_advanced import phone_advanced
+            from core.phone.phone_advanced import phone_advanced
             phone_advanced.start_sms_monitoring()
             config = get_ui_config()
             config['sms_reading'] = 'enabled'
@@ -373,7 +373,7 @@ def start():
     @eel.expose
     def disableSmsReading():
         try:
-            from engine.phone_advanced import phone_advanced
+            from core.phone.phone_advanced import phone_advanced
             phone_advanced.stop_sms_monitoring()
             config = get_ui_config()
             config['sms_reading'] = 'disabled'
@@ -394,7 +394,7 @@ def start():
     @eel.expose
     def enableCallNotifications():
         try:
-            from engine.phone_advanced import phone_advanced
+            from core.phone.phone_advanced import phone_advanced
             phone_advanced.start_call_monitoring()
             config = get_ui_config()
             config['call_notifications'] = 'enabled'
@@ -406,7 +406,7 @@ def start():
     @eel.expose
     def disableCallNotifications():
         try:
-            from engine.phone_advanced import phone_advanced
+            from core.phone.phone_advanced import phone_advanced
             phone_advanced.stop_call_monitoring()
             config = get_ui_config()
             config['call_notifications'] = 'disabled'
@@ -427,7 +427,7 @@ def start():
     @eel.expose
     def setAIProvider(provider):
         try:
-            with open('ai_config.json', 'w') as f:
+            with open('config/ai_config.json', 'w') as f:
                 json.dump({"ai_provider": provider.lower()}, f)
             return f"AI provider set to {provider}"
         except Exception as e:
@@ -436,7 +436,7 @@ def start():
     @eel.expose
     def getAIProvider():
         try:
-            with open('ai_config.json', 'r') as f:
+            with open('config/ai_config.json', 'r') as f:
                 config = json.load(f)
                 provider = config.get('ai_provider', 'groq')
                 return provider.capitalize()
@@ -446,7 +446,7 @@ def start():
     @eel.expose
     def setResponseStyle(style):
         try:
-            from engine.personality_manager import personality_manager
+            from core.config.personality_manager import personality_manager
             result = personality_manager.set_response_style(style)
             return result
         except Exception as e:
@@ -455,7 +455,7 @@ def start():
     @eel.expose
     def setAIPersonality(personality):
         try:
-            from engine.personality_manager import personality_manager
+            from core.config.personality_manager import personality_manager
             result = personality_manager.set_personality(personality)
             return result
         except Exception as e:
@@ -464,7 +464,7 @@ def start():
     @eel.expose
     def getPersonalitySettings():
         try:
-            from engine.personality_manager import personality_manager
+            from core.config.personality_manager import personality_manager
             settings = personality_manager.get_current_settings()
             return settings
         except Exception as e:
@@ -473,7 +473,7 @@ def start():
     @eel.expose
     def startContinuousListen():
         try:
-            from engine.command import start_continuous_listen
+            from core.commands.command import start_continuous_listen
             result = start_continuous_listen()
             return result
         except Exception as e:
@@ -482,7 +482,7 @@ def start():
     @eel.expose
     def stopContinuousListen():
         try:
-            from engine.command import stop_continuous_listen
+            from core.commands.command import stop_continuous_listen
             result = stop_continuous_listen()
             return result
         except Exception as e:
@@ -491,7 +491,7 @@ def start():
     @eel.expose
     def getContinuousListenStatus():
         try:
-            from engine.command import get_continuous_listen_status
+            from core.commands.command import get_continuous_listen_status
             result = get_continuous_listen_status()
             return result
         except Exception as e:
@@ -500,7 +500,7 @@ def start():
     @eel.expose
     def enableEmotionDetection():
         try:
-            from engine.command import emotion_system
+            from core.commands.command import emotion_system
             result = emotion_system.enable()
             return result
         except Exception as e:
@@ -509,7 +509,7 @@ def start():
     @eel.expose
     def disableEmotionDetection():
         try:
-            from engine.command import emotion_system
+            from core.commands.command import emotion_system
             result = emotion_system.disable()
             return result
         except Exception as e:
@@ -518,7 +518,7 @@ def start():
     @eel.expose
     def getEmotionStatus():
         try:
-            from engine.command import emotion_system
+            from core.commands.command import emotion_system
             return emotion_system.get_status()
         except Exception as e:
             return "Error"
@@ -526,7 +526,7 @@ def start():
     @eel.expose
     def getCommandHistory():
         try:
-            from engine.command_history import command_history
+            from core.commands.command_history import command_history
             return command_history.get_recent_commands(20)
         except Exception as e:
             return []
@@ -534,7 +534,7 @@ def start():
     @eel.expose
     def clearCommandHistory():
         try:
-            from engine.command_history import command_history
+            from core.commands.command_history import command_history
             command_history.clear_history()
             return "Command history cleared"
         except Exception as e:
@@ -543,7 +543,7 @@ def start():
     @eel.expose
     def searchCommands(query="", date_filter="", input_type=""):
         try:
-            from engine.command_history import command_history
+            from core.commands.command_history import command_history
             return command_history.search_commands(query, date_filter, input_type)
         except Exception as e:
             return []
@@ -551,16 +551,16 @@ def start():
     @eel.expose
     def getCommandStatistics():
         try:
-            from engine.command_history import command_history
+            from core.commands.command_history import command_history
             return command_history.get_statistics()
         except Exception as e:
             return {"total": 0, "voice": 0, "text": 0, "most_used": [], "success_rate": 0}
     
     @eel.expose
     def getAuthenticatedUserName(user_id):
-        """Get user name from users.json based on authenticated user ID"""
+        """Get user name from data/state/users.json based on authenticated user ID"""
         try:
-            with open('users.json', 'r') as f:
+            with open('data/state/users.json', 'r') as f:
                 users = json.load(f)
                 return users.get(str(user_id), "Sir")
         except Exception as e:
@@ -571,8 +571,8 @@ def start():
     def getUserName():
         """Get current user name (fallback function)"""
         try:
-            # Try to get the most recent user from users.json
-            with open('users.json', 'r') as f:
+            # Try to get the most recent user from data/state/users.json
+            with open('data/state/users.json', 'r') as f:
                 users = json.load(f)
                 if users:
                     # Return the last added user
@@ -588,7 +588,7 @@ def start():
     def registerFingerprint():
         """Register fingerprint"""
         try:
-            from engine.auth.fingerprint_auth import FingerprintAuth
+            from core.auth.fingerprint_auth import FingerprintAuth
             auth = FingerprintAuth()
             if auth.register():
                 return "Fingerprint registered successfully"
@@ -600,8 +600,9 @@ def start():
     def init():
         try:
             # Try to connect to ADB device with longer timeout
-            print("Running device.bat...")
-            result = subprocess.run([r'device.bat'], timeout=10)
+            device_script = os.path.join(os.getcwd(), 'scripts', 'device.bat')
+            print(f"Running {device_script}...")
+            result = subprocess.run([device_script], timeout=10)
             if result.returncode == 0:
                 print("Device connection successful")
             else:
@@ -614,8 +615,8 @@ def start():
         
         # Load saved language and voice settings on startup
         try:
-            from engine.multilingual_support import multilingual
-            with open('current_language.txt', 'r') as f:
+            from core.voice.multilingual_support import multilingual
+            with open('config/current_language.txt', 'r') as f:
                 saved_language = f.read().strip()
                 multilingual.current_language = saved_language
                 print(f"Language loaded: {saved_language}")
@@ -623,7 +624,7 @@ def start():
             print(f"Language load error: {e}")
         
         try:
-            from engine.voice_gender_control import voice_control
+            from core.voice.voice_gender_control import voice_control
             voice_control.load_config()
             print(f"Voice gender loaded: {voice_control.current_gender}")
         except Exception as e:
@@ -636,16 +637,16 @@ def start():
             
             # Auto-start phone notifications if enabled
             if ui_config.get('phone_notifications') == 'enabled':
-                from engine.phone_notifications import phone_monitor
+                from core.phone.phone_notifications import phone_monitor
                 phone_monitor.start_monitoring()
             
             # Auto-start SMS and call monitoring if enabled
             if ui_config.get('sms_reading') == 'enabled':
-                from engine.phone_advanced import phone_advanced
+                from core.phone.phone_advanced import phone_advanced
                 phone_advanced.start_sms_monitoring()
             
             if ui_config.get('call_notifications') == 'enabled':
-                from engine.phone_advanced import phone_advanced
+                from core.phone.phone_advanced import phone_advanced
                 phone_advanced.start_call_monitoring()
             
             # Don't auto-start emotion detection - let user control it
@@ -657,7 +658,7 @@ def start():
         try:
             config = get_ui_config()
             if config.get('phone_notifications') == 'enabled':
-                from engine.phone_notifications import phone_monitor
+                from core.phone.phone_notifications import phone_monitor
                 if not phone_monitor.monitoring:
                     phone_monitor.start_monitoring()
         except Exception as e:

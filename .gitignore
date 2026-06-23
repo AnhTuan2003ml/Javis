@@ -139,24 +139,24 @@ api_keys.json
 credentials.json
 *.key
 *.pem
-password_key.key
-passwords.json
+data/secrets/password_key.key
+data/secrets/passwords.json
 
 # User Data and Profiles
 users.json
 user_profiles/
 face_data/
 fingerprint_data/
-biometric_config.json
-face_auth_config.json
+config/biometric_config.json
+config/face_auth_config.json
 
 # Database Files
 *.db
 *.sqlite
 *.sqlite3
-jarvis.db
-jarvis_memory.db
-jarvis_knowledge.db
+data/databases/jarvis.db
+data/databases/jarvis_memory.db
+data/databases/jarvis_knowledge.db
 command_history.db
 
 # Configuration Files with Sensitive Data
@@ -178,8 +178,8 @@ temp/
 tmp/
 *.tmp
 *.temp
-dictation.txt
-current_language.txt
+data/state/dictation.txt
+config/current_language.txt
 
 # Audio/Video Files
 *.wav
@@ -260,39 +260,39 @@ ai_models/
 trained_models/
 *.yml
 trainer.yml
-engine/auth/trainer/trainer.yml
+core/auth/trainer/trainer.yml
 
 # Memory and State Files
 memory_state.json
 session_state.json
 app_state.json
-jarvis_long_term_memory.json
-adaptive_memory.json
+data/state/jarvis_long_term_memory.json
+data/state/adaptive_memory.json
 
 # Usage and Analytics Data
 usage_stats.json
 analytics.json
-command_history.json
-jarvis_usage.json
+data/state/command_history.json
+data/state/jarvis_usage.json
 
 # Scheduled Tasks and Automation
-scheduled_tasks.json
-scheduled_emails.json
+data/state/scheduled_tasks.json
+data/state/scheduled_emails.json
 automation_rules.json
-reminders.json
+data/state/reminders.json
 
 # Phone Integration Data
 phone_contacts.json
 message_history.json
 call_logs.json
-device_sync.json
+data/state/device_sync.json
 
 # Feature-Specific Data
-flashcards.json
-expenses.json
-health_data.json
-quick_notes.json
-recent_files.json
+data/state/flashcards.json
+data/state/expenses.json
+data/state/health_data.json
+data/state/quick_notes.json
+data/state/recent_files.json
 
 # Configuration Backups
 config_backup/
@@ -359,7 +359,7 @@ spotify_tokens.json
 
 # Auto-generated Reports
 reports/
-battery_report.html
+reports/battery_report.html
 system_report.html
 performance_report.pdf
 

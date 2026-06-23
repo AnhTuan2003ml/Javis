@@ -184,7 +184,7 @@ class ExampleClass:
 ```python
 import pytest
 from unittest.mock import Mock, patch
-from src.example_module import ExampleClass
+from core.example_module import ExampleClass
 
 
 class TestExampleClass:

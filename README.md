@@ -180,7 +180,7 @@ graph TB
 
 2. **Run the automated installer**
    ```bash
-   install.bat
+   scripts/install.bat
    ```
 
 ### Manual Installation
@@ -192,10 +192,10 @@ graph TB
 
 2. **Set up API keys**
    ```bash
-   # Edit groq_config.py
+   # Optional: create/edit core/ai/groq_config.py
    GROQ_API_KEY = "your-groq-api-key-here"
    
-   # Edit gemini_config.py
+   # Edit core/ai/gemini_config.py
    GEMINI_API_KEY = "your-gemini-api-key-here"
    ```
 
@@ -203,12 +203,13 @@ graph TB
    ```bash
    # Enable USB debugging on Android device
    # Install ADB tools
-   # Run: python setup_phone_link.py
+   # Phone commands are handled by core/phone/
    ```
 
 4. **Set up face authentication (Optional)**
    ```bash
-   python setup_face_auth.py
+   python core/auth/sample.py
+   python core/auth/trainer.py
    ```
 
 ## 🎮 How to Run
@@ -223,16 +224,14 @@ python run.py
 python main.py
 ```
 
-### Features Setup
+### Feature Modules
 ```bash
-# Face authentication setup
-python setup_face_auth.py
+# Face authentication sample/training
+python core/auth/sample.py
+python core/auth/trainer.py
 
-# Phone integration setup
-python setup_phone_link.py
-
-# Add new user
-python add_user.py
+# Phone integration code
+core/phone/
 ```
 
 ### Voice Commands Examples
@@ -314,8 +313,8 @@ GEMINI_API_KEY = "your-gemini-api-key"
 
 ### Programmatic Usage
 ```python
-from engine.command import allCommands
-from engine.dual_ai import get_simple_response
+from core.commands.command import allCommands
+from core.ai.dual_ai import get_simple_response
 
 # Execute command
 allCommands("open calculator")

@@ -14,7 +14,9 @@ cd /d "{os.getcwd()}"
 python run.py'''
         
         # Create batch file
-        batch_path = os.path.join(os.getcwd(), 'jarvis_autostart.bat')
+        scripts_dir = os.path.join(os.getcwd(), 'scripts')
+        os.makedirs(scripts_dir, exist_ok=True)
+        batch_path = os.path.join(scripts_dir, 'jarvis_autostart.bat')
         with open(batch_path, 'w') as f:
             f.write(batch_content)
         
@@ -36,7 +38,7 @@ def disable_auto_start():
         if os.path.exists(startup_batch):
             os.remove(startup_batch)
         
-        local_batch = os.path.join(os.getcwd(), 'jarvis_autostart.bat')
+        local_batch = os.path.join(os.getcwd(), 'scripts/jarvis_autostart.bat')
         if os.path.exists(local_batch):
             os.remove(local_batch)
         

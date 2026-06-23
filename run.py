@@ -4,9 +4,9 @@ import time
 import sys
 import threading
 from datetime import datetime
-#python -c "from engine.dual_ai import get_simple_response; result = get_simple_response('trivia game'); print(result)"
+#python -c "from core.ai.dual_ai import get_simple_response; result = get_simple_response('trivia game'); print(result)"
 
-#  python -c "from engine.command import allCommands; allCommands('open notepad')"
+#  python -c "from core.commands.command import allCommands; allCommands('open notepad')"
 
 # Method 1 (Step by step):
 #   1. Say: 'send message to akshay'
@@ -22,14 +22,6 @@ def startJarvis():
         print(f"Error: {e}")
         sys.exit(1)
 
-def startChatbot():
-    try:
-        import os
-        os.chdir('chatgpt_clone')
-        subprocess.run([sys.executable, 'app.py'])
-    except Exception as e:
-        print(f"Chatbot error: {e}")
-
 # To run hotword with restart capability
 def listenHotword():
     max_restarts = 3
@@ -37,7 +29,7 @@ def listenHotword():
     
     while restart_count < max_restarts:
         try:
-            from engine.features import hotword
+            from core.commands.features import hotword
             hotword()
             break
         except Exception as e:
@@ -50,7 +42,7 @@ def listenHotword():
 # Proactive Jarvis background service with popup suggestions
 def runProactiveJarvis():
     try:
-        from engine.dual_ai import get_simple_response
+        from core.ai.dual_ai import get_simple_response
         
         get_simple_response('enable_proactive_mode')
         print("Proactive Jarvis started in background")
@@ -115,12 +107,10 @@ if __name__ == '__main__':
         p1 = multiprocessing.Process(target=startJarvis, name="JarvisMain")
         p2 = multiprocessing.Process(target=listenHotword, name="HotwordDetection")
         p3 = multiprocessing.Process(target=runProactiveJarvis, name="ProactiveJarvis")
-        p4 = multiprocessing.Process(target=startChatbot, name="ChatbotServer")
         
         p1.start()
         p2.start()
         p3.start()
-        p4.start()
         
         # Silent startup
         
@@ -139,13 +129,6 @@ if __name__ == '__main__':
             if p3.is_alive():
                 p3.kill()
                 p3.join()
-        
-        if p4.is_alive():
-            p4.terminate()
-            p4.join(timeout=3)
-            if p4.is_alive():
-                p4.kill()
-                p4.join()
         
         print("JARVIS stopped")
         
@@ -178,7 +161,6 @@ if __name__ == '__main__':
             p3.kill()
             
         sys.exit(1)
-
 
 
 

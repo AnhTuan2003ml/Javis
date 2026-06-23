@@ -336,69 +336,18 @@ $(document).ready(function () {
 // Add function to read config files
 eel.expose(readConfigFiles);
 function readConfigFiles() {
-    return new Promise((resolve) => {
-        const configs = {};
-        
-        // Try to read AI config
-        try {
-            fetch('file:///C:/Users/Hp/Music/inp/ai_config.json')
-                .then(response => response.json())
-                .then(data => {
-                    configs.ai_config = data;
-                })
-                .catch(() => {
-                    configs.ai_config = { provider: 'GROQ' };
-                });
-        } catch (e) {
-            configs.ai_config = { provider: 'GROQ' };
-        }
-        
-        // Try to read voice config
-        try {
-            fetch('file:///C:/Users/Hp/Music/inp/voice_config.json')
-                .then(response => response.json())
-                .then(data => {
-                    configs.voice_config = data;
-                })
-                .catch(() => {
-                    configs.voice_config = { gender: 'male' };
-                });
-        } catch (e) {
-            configs.voice_config = { gender: 'male' };
-        }
-        
-        // Try to read language
-        try {
-            fetch('file:///C:/Users/Hp/Music/inp/current_language.txt')
-                .then(response => response.text())
-                .then(data => {
-                    configs.language = data.trim() || 'english';
-                })
-                .catch(() => {
-                    configs.language = 'english';
-                });
-        } catch (e) {
-            configs.language = 'english';
-        }
-        
-        setTimeout(() => resolve(configs), 100);
-    });
+    return Promise.all([
+        eel.getAIProvider()().catch(() => 'GROQ'),
+        eel.getVoiceGender()().catch(() => 'Male'),
+        eel.getCurrentLanguage()().catch(() => 'English')
+    ]).then(([provider, gender, language]) => ({
+        ai_config: { provider },
+        voice_config: { gender: String(gender).toLowerCase() },
+        language: String(language).toLowerCase()
+    }));
 }
 // Add function to read command history
 eel.expose(readCommandHistory);
 function readCommandHistory() {
-    return new Promise((resolve) => {
-        try {
-            fetch('file:///C:/Users/Hp/Music/inp/command_history.json')
-                .then(response => response.json())
-                .then(data => {
-                    resolve(data);
-                })
-                .catch(() => {
-                    resolve([]);
-                });
-        } catch (e) {
-            resolve([]);
-        }
-    });
+    return eel.getCommandHistory()().catch(() => []);
 }

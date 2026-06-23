@@ -207,8 +207,8 @@ JARVIS: "Opening File Explorer and navigating to Documents folder"
 5. Enable/disable features
 
 ### Authentication Testing
-1. Set up face authentication: `python setup_face_auth.py`
-2. Configure phone integration: `python setup_phone_link.py`
+1. Capture face samples: `python core/auth/sample.py`
+2. Train face authentication: `python core/auth/trainer.py`
 3. Test dual authentication
 4. Verify user profile loading
 
@@ -218,17 +218,15 @@ JARVIS: "Opening File Explorer and navigating to Documents folder"
 
 #### Voice Recognition Not Working
 ```bash
-# Test microphone
-python -c "from src.speech_to_text import SpeechToText; stt = SpeechToText(); print(stt.test_microphone())"
-
 # Check audio devices
-python -c "from src.speech_to_text import SpeechToText; stt = SpeechToText(); print(stt.get_available_microphones())"
+python -c "import speech_recognition as sr; print(sr.Microphone.list_microphone_names())"
 ```
 
 #### Face Authentication Failing
 ```bash
 # Recalibrate face recognition
-python setup_face_auth.py
+python core/auth/sample.py
+python core/auth/trainer.py
 
 # Check camera access
 python -c "import cv2; cap = cv2.VideoCapture(0); print('Camera working:', cap.isOpened()); cap.release()"
@@ -240,7 +238,7 @@ python -c "import cv2; cap = cv2.VideoCapture(0); print('Camera working:', cap.i
 adb devices
 
 # Test phone connectivity
-python -c "from engine.phone import *; test_phone_connection()"
+python -c "from core.phone.phone import *; test_phone_connection()"
 ```
 
 ## 📈 Usage Analytics

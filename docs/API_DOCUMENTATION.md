@@ -554,31 +554,19 @@ class PhoneIntegrationError(JarvisError):
 ### Basic Voice Command Processing
 
 ```python
-from src.speech_to_text import SpeechToText
-from src.command_handler import CommandHandler
-from src.text_to_speech import TextToSpeech
-
-# Initialize components
-stt = SpeechToText()
-handler = CommandHandler()
-tts = TextToSpeech()
+from core.commands.command import allCommands, speak, takecommand
 
 # Process voice command
 def process_voice_command():
-    # Listen for speech
-    text = stt.listen_once(timeout=5)
+    text = takecommand()
     
     if text:
-        # Process command
-        result = handler.process_text(text)
-        
-        # Respond with speech
-        if result.success:
-            tts.speak(result.message)
-        else:
-            tts.speak(f"Sorry, I couldn't process that command: {result.error}")
+        result = allCommands(text)
+        speak(result)
+        return result
     else:
-        tts.speak("I didn't hear anything. Please try again.")
+        speak("I didn't hear anything. Please try again.")
+        return None
 
 # Example usage
 process_voice_command()
@@ -587,7 +575,7 @@ process_voice_command()
 ### AI Query Processing
 
 ```python
-from engine.dual_ai import get_simple_response, get_advanced_response
+from core.ai.dual_ai import get_simple_response, get_advanced_response
 
 # Simple AI query
 response = get_simple_response("What's the weather like today?")
@@ -608,7 +596,7 @@ print(f"Confidence: {advanced_response['confidence']}")
 ### Phone Integration Example
 
 ```python
-from engine.phone import send_message, get_contacts
+from core.phone.phone import send_message, get_contacts
 
 # Send WhatsApp message
 success = send_message("John Doe", "Hello from JARVIS!", "whatsapp")
@@ -624,8 +612,8 @@ for contact in contacts[:5]:  # Show first 5 contacts
 ### System Control Example
 
 ```python
-from engine.command import allCommands
-from engine.system_monitor import getSystemStats
+from core.commands.command import allCommands
+from core.system.system_monitor import getSystemStats
 
 # Open application
 allCommands("open calculator")
@@ -725,7 +713,7 @@ print(mics)
 #### AI API Errors
 ```python
 # Check API key configuration
-from engine.dual_ai import test_ai_connection
+from core.ai.dual_ai import test_ai_connection
 result = test_ai_connection()
 print(f"Groq: {result['groq']}, Gemini: {result['gemini']}")
 ```
@@ -733,7 +721,7 @@ print(f"Groq: {result['groq']}, Gemini: {result['gemini']}")
 #### Phone Connection Issues
 ```python
 # Test ADB connection
-from engine.phone import test_phone_connection
+from core.phone.phone import test_phone_connection
 connected = test_phone_connection()
 print(f"Phone connected: {connected}")
 ```
