@@ -1,0 +1,43 @@
+# Core Dependencies
+pyttsx3==2.90
+speechrecognition==3.10.0
+pyaudio==0.2.11
+requests==2.31.0
+eel==0.16.0
+
+# AI & Machine Learning
+groq==0.4.1
+google-generativeai==0.3.2
+transformers==4.35.2
+torch==2.1.1
+numpy==1.24.3
+
+# Computer Vision & Image Processing
+opencv-contrib-python==4.8.1.78
+pillow==10.1.0
+
+# System Integration & Automation
+psutil==5.9.6
+pyautogui==0.9.54
+schedule==1.2.0
+cryptography==41.0.7
+
+# Communication & Messaging
+pywhatkit==5.4
+qrcode==7.4.2
+
+# Audio & Media
+pygame==2.5.2
+gtts==2.4.0
+
+# Optional Dependencies
+pvporcupine==3.0.0
+hugchat==0.3.4
+
+# Data Visualization
+matplotlib==3.8.2
+
+# Development Dependencies (Optional)
+pytest==7.4.3
+black==23.11.0
+flake8==6.1.0

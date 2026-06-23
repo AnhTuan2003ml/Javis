@@ -1,0 +1,135 @@
+/* Professional Settings Modal - Oval UI Match */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { 
+        opacity: 0;
+        transform: translate(-50%, -60%) scale(0.95);
+    }
+    to { 
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Settings Modal Base */
+#settingsModal {
+    background: rgba(0, 15, 30, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+    animation: fadeIn 0.3s ease !important;
+}
+
+#settingsModal > div {
+    background: linear-gradient(135deg, rgba(15, 30, 50, 0.95), rgba(10, 20, 35, 0.98)) !important;
+    border-radius: 20px !important;
+    border: 1px solid rgba(0, 170, 255, 0.4) !important;
+    box-shadow: 0 10px 30px rgba(0, 170, 255, 0.2) !important;
+    animation: slideIn 0.4s ease !important;
+    overflow-y: auto !important;
+    padding-right: 30px !important;
+}
+
+/* Header */
+#settingsModal h2 {
+    color: #00AAFF !important;
+    text-shadow: 0 0 8px rgba(0, 170, 255, 0.4) !important;
+    font-weight: 600 !important;
+}
+
+#closeSettings {
+    background: linear-gradient(45deg, #ff4757, #e84118) !important;
+    border: none !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3) !important;
+}
+
+#closeSettings:hover {
+    transform: scale(1.1) rotate(90deg) !important;
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.5) !important;
+}
+
+/* Sections */
+#settingsModal > div > div:not(:first-child) {
+    background: rgba(0, 170, 255, 0.05) !important;
+    border: 1px solid rgba(0, 170, 255, 0.15) !important;
+    border-radius: 15px !important;
+    box-shadow: 0 2px 10px rgba(0, 170, 255, 0.1) !important;
+    transition: all 0.2s ease !important;
+}
+
+#settingsModal > div > div:not(:first-child):hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 15px rgba(0, 170, 255, 0.15) !important;
+}
+
+/* Button Color Override - Use Conversation Header Color */
+#settingsModal button:not(#closeSettings) {
+    background: linear-gradient(45deg, #00AAFF, #0088CC) !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px rgba(0, 170, 255, 0.3) !important;
+}
+
+#settingsModal button:not(#closeSettings):hover {
+    background: linear-gradient(45deg, #0088CC, #006699) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 170, 255, 0.4) !important;
+}
+
+/* Status Badges */
+#settingsModal span[id$="Status"], 
+#settingsModal span[id$="Language"], 
+#settingsModal span[id$="Gender"], 
+#settingsModal span[id$="Provider"] {
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Language Buttons */
+.lang-btn {
+    background: linear-gradient(45deg, #00AAFF, #0088CC) !important;
+}
+
+.lang-btn:hover {
+    background: linear-gradient(45deg, #0088CC, #006699) !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 2px 8px rgba(0, 170, 255, 0.4) !important;
+}
+
+/* Scrollbar - Contained within modal */
+#settingsModal > div::-webkit-scrollbar {
+    width: 8px;
+}
+
+#settingsModal > div::-webkit-scrollbar-track {
+    background: rgba(0, 170, 255, 0.1);
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+#settingsModal > div::-webkit-scrollbar-thumb {
+    background: rgba(0, 170, 255, 0.6);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+#settingsModal > div::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 170, 255, 0.8);
+    background-clip: content-box;
+}
+
+
+.btn-close {
+    background-color: #ff4757 !important;
+    color: white !important;
+    border-radius: 50% !important;
+    opacity: 1 !important;
+}
+
+.btn-close:hover {
+    background-color: #ff3742 !important;
+    transform: scale(1.1) !important;
+}

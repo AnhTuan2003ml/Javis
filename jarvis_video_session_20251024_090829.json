@@ -1,0 +1,46 @@
+{
+  "session_info": {
+    "timestamp": "2025-10-24T09:08:29.737489",
+    "total_interactions": 3
+  },
+  "conversation_memory": [
+    {
+      "timestamp": "2025-10-24T09:07:49.605463",
+      "user_input": "hello can you see me",
+      "face_detected": false,
+      "emotion": "neutral",
+      "eye_contact": false,
+      "attention_score": 50.0,
+      "jarvis_response": "Hello! I'm watching. How can I help you?"
+    },
+    {
+      "timestamp": "2025-10-24T09:08:10.192078",
+      "user_input": "what is this tell me",
+      "face_detected": false,
+      "emotion": "neutral",
+      "eye_contact": false,
+      "attention_score": 10.0,
+      "jarvis_response": "Hello! I'm watching. How can I help you?"
+    },
+    {
+      "timestamp": "2025-10-24T09:08:20.736002",
+      "user_input": "what is this tell me",
+      "face_detected": true,
+      "emotion": "neutral",
+      "eye_contact": true,
+      "attention_score": 80.0,
+      "jarvis_response": "Hello! I can see you, you're looking at me. How can I help you?"
+    }
+  ],
+  "summary": {
+    "total_interactions": 3,
+    "average_attention": 46.7,
+    "dominant_emotion": "neutral",
+    "current_state": {
+      "emotion": "neutral",
+      "face_detected": false,
+      "eye_contact": false,
+      "attention_score": 10.0
+    }
+  }
+}
